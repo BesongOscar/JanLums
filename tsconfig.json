@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "jsx": "react-native",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "target": "ESNext",
+    "esModuleInterop": true,
+    "allowJs": true
+  },
+  "include": [],
+  "references": [
+    { "path": "apps/customer-mobile" },
+    { "path": "apps/customer-web" },
+    { "path": "apps/pressing-web" },
+    { "path": "apps/api" },
+    { "path": "packages/ui" },
+    { "path": "packages/utils" },
+    { "path": "packages/shared-types" }
+  ]
+}

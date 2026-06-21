@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: janlums-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: janlums
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - janlums-network
+
+  # Backend API
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: janlums-api
+    ports:
+      - "3015:3015"
+    environment:
+      NODE_ENV: development
+      PORT: 3015
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: janlums
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_EXPIRES_IN: 7d
+    depends_on:
+      - postgres
+    networks:
+      - janlums-network
+    volumes:
+      - ./apps/api/src:/app/src
+      - ./apps/api/package.json:/app/package.json
+    command: npm run dev
+
+  # Pressing Web (Staff Operations)
+  pressing-web:
+    build:
+      context: ./apps/pressing-web
+      dockerfile: Dockerfile
+    container_name: janlums-pressing-web
+    ports:
+      - "3025:3025"
+    environment:
+      VITE_API_URL: http://localhost:3015/api/v1
+    depends_on:
+      - api
+    networks:
+      - janlums-network
+
+  # Customer Web (Customer Portal)
+  customer-web:
+    build:
+      context: ./apps/customer-web
+      dockerfile: Dockerfile
+    container_name: janlums-customer-web
+    ports:
+      - "3035:3035"
+    environment:
+      VITE_API_URL: http://localhost:3015/api/v1
+    depends_on:
+      - api
+    networks:
+      - janlums-network
+
+  # Admin Web (Platform Admin)
+  admin-web:
+    build:
+      context: ./apps/admin-web
+      dockerfile: Dockerfile
+    container_name: janlums-admin-web
+    ports:
+      - "3085:3085"
+    environment:
+      VITE_API_URL: http://localhost:3015/api/v1
+    depends_on:
+      - api
+    networks:
+      - janlums-network
+
+volumes:
+  postgres_data:
+
+networks:
+  janlums-network:
+    driver: bridge

@@ -1,0 +1,41 @@
+{
+  "name": "janlums",
+  "version": "1.0.0",
+  "private": true,
+  "description": "JanLunMS - Jan Laundry Management System",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "db:migrate": "cd apps/api && pnpm migration:run",
+    "db:seed": "cd apps/api && pnpm seed",
+    "db:reset": "pnpm db:migrate && pnpm db:seed",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "pnpm": {
+    "overrides": {
+      "react": "18.2.0",
+      "react-dom": "18.2.0",
+      "@types/react": "~18.2.79",
+      "@types/react-dom": "~18.2.0"
+    }
+  },
+  "dependencies": {
+    "expo": "~51.0.28",
+    "react": "18.2.0",
+    "react-native": "0.74.5"
+  }
+}
