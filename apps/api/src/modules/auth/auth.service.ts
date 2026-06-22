@@ -1,8 +1,11 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
+import { User } from '../users/entities/user.entity';
+import { Customer } from '../customers/entities/customer.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -12,6 +15,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async login(loginDto: LoginDto) {
@@ -58,10 +62,28 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(registerDto.password, 10);
-    
-    const user = await this.usersService.create({
-      ...registerDto,
-      passwordHash,
+
+    const user = await this.dataSource.transaction(async (manager) => {
+      const newUser = await manager.save(User, {
+        email: registerDto.email,
+        passwordHash,
+        firstName: registerDto.firstName,
+        lastName: registerDto.lastName,
+        phone: registerDto.phone,
+        tenantId: registerDto.tenantId,
+        role: registerDto.role || 'customer',
+      });
+
+      await manager.save(Customer, {
+        userId: newUser.id,
+        tenantId: newUser.tenantId,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        email: newUser.email,
+        phone: newUser.phone,
+      });
+
+      return newUser;
     });
 
     const payload = {

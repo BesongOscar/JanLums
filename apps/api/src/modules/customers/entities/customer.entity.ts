@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, OneToOne, JoinColumn } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
 
 @Entity('customers')
 export class Customer {
@@ -7,6 +8,13 @@ export class Customer {
 
   @Column({ type: 'uuid' })
   tenantId: string;
+
+  @Column({ type: 'uuid', nullable: true, unique: true })
+  userId?: string;
+
+  @OneToOne(() => User, user => user.customer, { nullable: true })
+  @JoinColumn({ name: 'user_id' })
+  user?: User;
 
   @Column()
   @Index()
