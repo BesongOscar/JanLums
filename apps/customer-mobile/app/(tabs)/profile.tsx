@@ -25,7 +25,7 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.content}>
-        <Button mode="outlined" onPress={handleLogout} style={styles.logoutButton}>
+        <Button mode="outlined" onPress={handleLogout} style={styles.logoutButton} textColor={colors.error.DEFAULT}>
           Log Out
         </Button>
       </View>
@@ -56,5 +56,6 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     marginTop: 16,
+    borderColor: colors.error.DEFAULT,
   },
 });

@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { PaperProvider, DefaultTheme } from 'react-native-paper';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QueryProvider } from '../src/providers/QueryProvider';
 import { useAuthStore } from '../src/stores/authStore';
 import { colors } from '../src/config/colors';
@@ -19,6 +21,8 @@ const theme = {
   },
 };
 
+const ONBOARDING_KEY = '@janlums/onboarding_complete';
+
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuthStore();
   const segments = useSegments();
@@ -27,24 +31,57 @@ function RootLayoutNav() {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
+    async function route() {
+      const onboardingValue = await AsyncStorage.getItem(ONBOARDING_KEY);
+      const isOnboardingComplete = onboardingValue === 'true';
 
-    if (!isAuthenticated && !inAuthGroup) {
-      router.replace('/(auth)/login');
-    } else if (isAuthenticated && inAuthGroup) {
-      router.replace('/(tabs)');
+      const inAuthGroup = segments[0] === '(auth)';
+      const inOnboarding = segments[1] === 'onboarding';
+
+      if (!isAuthenticated) {
+        if (!isOnboardingComplete && !inOnboarding) {
+          router.replace('/(auth)/onboarding');
+        } else if (isOnboardingComplete && !inAuthGroup) {
+          router.replace('/(auth)/login');
+        }
+      } else if (isAuthenticated && inAuthGroup) {
+        router.replace('/(tabs)');
+      }
     }
-  }, [isAuthenticated, isLoading, segments]);
 
-  return <Slot />;
+    route();
+  }, [isAuthenticated, isLoading, segments, router]);
+
+  return (
+    <View style={styles.container}>
+      <Slot />
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={colors.primary[500]} />
+        </View>
+      )}
+    </View>
+  );
 }
 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+});
+
 export default function RootLayout() {
-  const loadStoredAuth = useAuthStore((state) => state.loadStoredAuth);
+  const restoreSession = useAuthStore((state) => state.restoreSession);
 
   useEffect(() => {
-    loadStoredAuth();
-  }, []);
+    restoreSession();
+  }, [restoreSession]);
 
   return (
     <QueryProvider>

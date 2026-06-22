@@ -2,6 +2,9 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { secureStorage } from '../services/secureStorage';
 import { CONFIG } from '../config/environment';
 import { EventEmitter } from '../utils/eventEmitter';
+import { useAuthStore } from '../stores/authStore';
+
+let isLoggingOut = false;
 
 const api = axios.create({
   baseURL: CONFIG.apiUrl,
@@ -27,9 +30,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !isLoggingOut) {
+      isLoggingOut = true;
       await secureStorage.clearTokens();
+      await useAuthStore.getState().logout();
       EventEmitter.emit('AUTH_LOGOUT');
+      isLoggingOut = false;
     }
     return Promise.reject(error);
   }

@@ -4,7 +4,7 @@ import { secureStorage } from '../services/secureStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthState {
-  token: string | null;
+  accessToken: string | null;
   refreshToken: string | null;
   user: AuthUser | null;
   tenantId: string | null;
@@ -13,14 +13,12 @@ interface AuthState {
 
   setAuth: (token: string, refreshToken: string | null, user: AuthUser) => Promise<void>;
   logout: () => Promise<void>;
+  restoreSession: () => Promise<void>;
   updateUser: (updates: Partial<AuthUser>) => void;
-  loadStoredAuth: () => Promise<void>;
-  getTenantId: () => string | null;
-  getUserId: () => string | null;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
-  token: null,
+  accessToken: null,
   refreshToken: null,
   user: null,
   tenantId: null,
@@ -32,7 +30,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await AsyncStorage.setItem('auth-user', JSON.stringify(user));
 
     set({
-      token,
+      accessToken: token,
       refreshToken,
       user,
       tenantId: user.tenantId,
@@ -45,7 +43,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await AsyncStorage.removeItem('auth-user');
 
     set({
-      token: null,
+      accessToken: null,
       refreshToken: null,
       user: null,
       tenantId: null,
@@ -53,16 +51,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
   },
 
-  updateUser: (updates) => {
-    const { user } = get();
-    if (user) {
-      const updatedUser = { ...user, ...updates };
-      AsyncStorage.setItem('auth-user', JSON.stringify(updatedUser));
-      set({ user: updatedUser });
-    }
-  },
-
-  loadStoredAuth: async () => {
+  restoreSession: async () => {
     try {
       const token = await secureStorage.getAccessToken();
       const userJson = await AsyncStorage.getItem('auth-user');
@@ -70,7 +59,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (token && userJson) {
         const user: AuthUser = JSON.parse(userJson);
         set({
-          token,
+          accessToken: token,
           user,
           tenantId: user.tenantId,
           isAuthenticated: true,
@@ -84,6 +73,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  getTenantId: () => get().tenantId,
-  getUserId: () => get().user?.id ?? null,
+  updateUser: (updates) => {
+    const { user } = get();
+    if (user) {
+      const updatedUser = { ...user, ...updates };
+      AsyncStorage.setItem('auth-user', JSON.stringify(updatedUser));
+      set({ user: updatedUser });
+    }
+  },
 }));

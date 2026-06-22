@@ -1,20 +1,15 @@
-import { useState } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, TextInput, Button, HelperText } from 'react-native-paper';
 import { Link } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { loginSchema, LoginFormData } from '../../src/utils/validation';
-import { useAuthStore } from '../../src/stores/authStore';
-import { API_ENDPOINTS } from '../../src/api/endpoints';
-import { colors } from '../../src/config/colors';
-import api from '../../src/api/client';
+import { loginSchema, LoginFormData } from '../../src/features/auth/validation';
+import { useLogin } from '../../src/features/auth/hooks/useLogin';
 import { normalizeError } from '../../src/utils/errorHandler';
+import { colors } from '../../src/config/colors';
 
 export default function LoginScreen() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const setAuth = useAuthStore((state) => state.setAuth);
+  const loginMutation = useLogin();
 
   const {
     control,
@@ -24,20 +19,13 @@ export default function LoginScreen() {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await api.post(API_ENDPOINTS.AUTH.LOGIN, data);
-      const { accessToken, refreshToken, user } = response.data;
-      await setAuth(accessToken, refreshToken, user);
-    } catch (err: unknown) {
-      setError(normalizeError(err).message);
-    } finally {
-      setIsLoading(false);
-    }
+  const onSubmit = (data: LoginFormData) => {
+    loginMutation.mutate(data);
   };
+
+  const errorMessage = loginMutation.error
+    ? normalizeError(loginMutation.error).message
+    : null;
 
   return (
     <KeyboardAvoidingView
@@ -55,9 +43,9 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.form}>
-          {error && (
+          {errorMessage && (
             <HelperText type="error" visible style={styles.error}>
-              {error}
+              {errorMessage}
             </HelperText>
           )}
 
@@ -108,8 +96,8 @@ export default function LoginScreen() {
           <Button
             mode="contained"
             onPress={handleSubmit(onSubmit)}
-            loading={isLoading}
-            disabled={isLoading}
+            loading={loginMutation.isPending}
+            disabled={loginMutation.isPending}
             style={styles.button}
           >
             Log In

@@ -1,12 +1,17 @@
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Card } from 'react-native-paper';
+import { Text, Card, Button } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../src/stores/authStore';
 import { colors } from '../../src/config/colors';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const user = useAuthStore((state) => state.user);
+  const { user, logout } = useAuthStore();
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/(auth)/login');
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -45,6 +50,15 @@ export default function HomeScreen() {
           </Text>
         </Card.Content>
       </Card>
+
+      <Button
+        mode="outlined"
+        onPress={handleLogout}
+        style={styles.logoutButton}
+        textColor={colors.error.DEFAULT}
+      >
+        Log Out
+      </Button>
     </ScrollView>
   );
 }
@@ -75,5 +89,9 @@ const styles = StyleSheet.create({
   cardDescription: {
     color: colors.text.secondary,
     marginTop: 4,
+  },
+  logoutButton: {
+    marginTop: 24,
+    borderColor: colors.error.DEFAULT,
   },
 });

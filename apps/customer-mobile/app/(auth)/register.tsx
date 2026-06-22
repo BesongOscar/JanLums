@@ -1,21 +1,16 @@
-import { useState } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, TextInput, Button, HelperText } from 'react-native-paper';
 import { Link } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { registerSchema, RegisterFormData } from '../../src/utils/validation';
-import { useAuthStore } from '../../src/stores/authStore';
-import { API_ENDPOINTS } from '../../src/api/endpoints';
+import { registerSchema, RegisterFormData } from '../../src/features/auth/validation';
+import { useRegister } from '../../src/features/auth/hooks/useRegister';
+import { normalizeError } from '../../src/utils/errorHandler';
 import { CONFIG } from '../../src/config/environment';
 import { colors } from '../../src/config/colors';
-import api from '../../src/api/client';
-import { normalizeError } from '../../src/utils/errorHandler';
 
 export default function RegisterScreen() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const setAuth = useAuthStore((state) => state.setAuth);
+  const registerMutation = useRegister();
 
   const {
     control,
@@ -25,28 +20,20 @@ export default function RegisterScreen() {
     resolver: zodResolver(registerSchema),
   });
 
-  const onSubmit = async (data: RegisterFormData) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await api.post(API_ENDPOINTS.AUTH.REGISTER, {
-        email: data.email,
-        password: data.password,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        phone: data.phone,
-        tenantId: CONFIG.tenantId,
-        role: 'customer',
-      });
-      const { accessToken, user } = response.data;
-      await setAuth(accessToken, null, user);
-    } catch (err: unknown) {
-      setError(normalizeError(err).message);
-    } finally {
-      setIsLoading(false);
-    }
+  const onSubmit = (data: RegisterFormData) => {
+    registerMutation.mutate({
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      password: data.password,
+      tenantId: CONFIG.tenantId,
+    });
   };
+
+  const errorMessage = registerMutation.error
+    ? normalizeError(registerMutation.error).message
+    : null;
 
   return (
     <KeyboardAvoidingView
@@ -64,9 +51,9 @@ export default function RegisterScreen() {
         </View>
 
         <View style={styles.form}>
-          {error && (
+          {errorMessage && (
             <HelperText type="error" visible style={styles.error}>
-              {error}
+              {errorMessage}
             </HelperText>
           )}
 
@@ -195,8 +182,8 @@ export default function RegisterScreen() {
           <Button
             mode="contained"
             onPress={handleSubmit(onSubmit)}
-            loading={isLoading}
-            disabled={isLoading}
+            loading={registerMutation.isPending}
+            disabled={registerMutation.isPending}
             style={styles.button}
           >
             Create Account
