@@ -27,6 +27,21 @@ export class CustomersService {
     return customer;
   }
 
+  async findByUserId(userId: string): Promise<Customer | null> {
+    return this.customerRepository.findOne({
+      where: { userId },
+    });
+  }
+
+  async updateByUserId(userId: string, data: Partial<Customer>): Promise<Customer> {
+    const customer = await this.findByUserId(userId);
+    if (!customer) {
+      throw new NotFoundException('Customer profile not found');
+    }
+    await this.customerRepository.update({ userId }, data);
+    return this.findByUserId(userId) as Promise<Customer>;
+  }
+
   async findByPhone(phone: string, tenantId: string): Promise<Customer | null> {
     return this.customerRepository.findOne({
       where: { phone, tenantId },

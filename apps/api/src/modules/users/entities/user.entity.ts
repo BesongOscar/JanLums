@@ -1,4 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, OneToOne } from 'typeorm';
+import { Exclude } from 'class-transformer';
+import { Customer } from '../../customers/entities/customer.entity';
 
 @Entity('users')
 export class User {
@@ -12,6 +14,7 @@ export class User {
   @Index()
   email: string;
 
+  @Exclude()
   @Column()
   passwordHash: string;
 
@@ -32,6 +35,9 @@ export class User {
 
   @Column({ nullable: true })
   lastLoginAt?: Date;
+
+  @OneToOne(() => Customer, customer => customer.user, { nullable: true })
+  customer?: Customer;
 
   @CreateDateColumn()
   createdAt: Date;

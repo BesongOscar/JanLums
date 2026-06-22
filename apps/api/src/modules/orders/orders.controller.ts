@@ -1,15 +1,20 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
+import { CustomersService } from '../customers/customers.service';
 import { Order } from './entities/order.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('orders')
 @ApiBearerAuth('JWT')
 @UseGuards(JwtAuthGuard)
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly customersService: CustomersService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all orders' })
@@ -27,6 +32,20 @@ export class OrdersController {
     @Query('branchId') branchId?: string,
   ): Promise<any> {
     return this.ordersService.getStats(tenantId, branchId);
+  }
+
+  @Get('me')
+  @ApiOperation({ summary: 'Get current customer orders (self-service)' })
+  @ApiResponse({ status: 200, description: 'Customer orders retrieved' })
+  async findMe(
+    @CurrentUser('userId') userId: string,
+    @CurrentUser('tenantId') tenantId: string,
+  ): Promise<Order[]> {
+    const customer = await this.customersService.findByUserId(userId);
+    if (!customer) {
+      return [];
+    }
+    return this.ordersService.findByCustomerId(customer.id, tenantId);
   }
 
   @Get(':id')

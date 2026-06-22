@@ -24,6 +24,14 @@ export class OrdersService {
     });
   }
 
+  async findByCustomerId(customerId: string, tenantId: string): Promise<Order[]> {
+    return this.orderRepository.find({
+      where: { customerId, tenantId },
+      relations: ['items', 'staff', 'branch'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
   async findById(id: string, tenantId: string): Promise<Order> {
     const order = await this.orderRepository.findOne({
       where: { id, tenantId },

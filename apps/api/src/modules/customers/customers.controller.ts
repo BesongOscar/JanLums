@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Query, UseGuards, NotFoundException } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CustomersService } from './customers.service';
 import { Customer } from './entities/customer.entity';
+import { UpdateMyProfileDto } from './dto/update-my-profile.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('customers')
 @ApiBearerAuth('JWT')
@@ -24,6 +26,30 @@ export class CustomersController {
     @Query('q') query: string,
   ): Promise<Customer[]> {
     return this.customersService.search(tenantId, query);
+  }
+
+  @Get('me')
+  @ApiOperation({ summary: 'Get current customer profile (self-service)' })
+  @ApiResponse({ status: 200, description: 'Customer profile found' })
+  @ApiResponse({ status: 404, description: 'Customer profile not found' })
+  async findMe(@CurrentUser('userId') userId: string): Promise<Customer> {
+    const customer = await this.customersService.findByUserId(userId);
+    if (!customer) {
+      throw new NotFoundException('Customer profile not found');
+    }
+    return customer;
+  }
+
+  @Patch('me')
+  @ApiOperation({ summary: 'Update current customer profile (self-service)' })
+  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
+  @ApiResponse({ status: 404, description: 'Customer profile not found' })
+  async updateMe(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: UpdateMyProfileDto,
+  ): Promise<Customer> {
+    return this.customersService.updateByUserId(userId, dto);
   }
 
   @Get(':id')
