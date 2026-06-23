@@ -1,102 +1,129 @@
-import { Injectable } from '@nestjs/common';
-
-export interface NotificationPayload {
-  to: string;
-  subject?: string;
-  message: string;
-  type: 'sms' | 'email' | 'push';
-  template?: string;
-  data?: Record<string, any>;
-}
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Notification, NotificationType } from './entities/notification.entity';
+import { CreateNotificationDto } from './dto/create-notification.dto';
 
 @Injectable()
 export class NotificationsService {
-  async sendNotification(payload: NotificationPayload): Promise<boolean> {
-    // TODO: Implement actual SMS/Email sending
-    // For now, just log the notification
-    console.log(`[${payload.type.toUpperCase()}] To: ${payload.to}`);
-    console.log(`Subject: ${payload.subject || 'N/A'}`);
-    console.log(`Message: ${payload.message}`);
-    return true;
+  constructor(
+    @InjectRepository(Notification)
+    private readonly notificationRepository: Repository<Notification>,
+  ) {}
+
+  async create(dto: CreateNotificationDto): Promise<Notification> {
+    const notification = this.notificationRepository.create(dto);
+    return this.notificationRepository.save(notification);
   }
 
-  async sendBulkNotifications(payloads: NotificationPayload[]): Promise<boolean[]> {
-    return Promise.all(payloads.map(payload => this.sendNotification(payload)));
-  }
-
-  // Order status notifications
-  async sendOrderStatusUpdate(
-    phone: string,
-    email: string | undefined,
-    orderId: string,
-    status: string
-  ): Promise<void> {
-    const message = `Your order ${orderId} status has been updated to: ${status}`;
-    
-    // Send SMS
-    await this.sendNotification({
-      to: phone,
-      message,
-      type: 'sms',
+  async findAllForCustomer(tenantId: string, customerId: string): Promise<Notification[]> {
+    return this.notificationRepository.find({
+      where: { tenantId, customerId },
+      order: { createdAt: 'DESC' },
     });
+  }
 
-    // Send Email if available
-    if (email) {
-      await this.sendNotification({
-        to: email,
-        subject: `Order ${orderId} Update`,
-        message,
-        type: 'email',
-      });
+  async findUnreadForCustomer(tenantId: string, customerId: string): Promise<Notification[]> {
+    return this.notificationRepository.find({
+      where: { tenantId, customerId, isRead: false },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async getUnreadCount(tenantId: string, customerId: string): Promise<number> {
+    return this.notificationRepository.count({
+      where: { tenantId, customerId, isRead: false },
+    });
+  }
+
+  async markAsRead(id: string, tenantId: string, customerId: string): Promise<Notification> {
+    const notification = await this.notificationRepository.findOne({
+      where: { id, tenantId, customerId },
+    });
+    if (!notification) {
+      throw new NotFoundException('Notification not found');
     }
+    notification.isRead = true;
+    return this.notificationRepository.save(notification);
   }
 
-  // Ready for pickup notification
-  async sendReadyForPickup(
-    phone: string,
-    email: string | undefined,
-    orderId: string
-  ): Promise<void> {
-    const message = `Great news! Your order ${orderId} is ready for pickup. Thank you for choosing Pressing 237!`;
-    
-    await this.sendNotification({
-      to: phone,
-      message,
-      type: 'sms',
-    });
+  async markAllAsRead(tenantId: string, customerId: string): Promise<number> {
+    const result = await this.notificationRepository.update(
+      { tenantId, customerId, isRead: false },
+      { isRead: true },
+    );
+    return result.affected ?? 0;
+  }
 
-    if (email) {
-      await this.sendNotification({
-        to: email,
-        subject: `Your Order is Ready!`,
-        message,
-        type: 'email',
-      });
+  async delete(id: string, tenantId: string, customerId: string): Promise<void> {
+    const notification = await this.notificationRepository.findOne({
+      where: { id, tenantId, customerId },
+    });
+    if (!notification) {
+      throw new NotFoundException('Notification not found');
     }
+    await this.notificationRepository.remove(notification);
   }
 
-  // Payment confirmation
-  async sendPaymentConfirmation(
-    phone: string,
-    email: string | undefined,
-    orderId: string,
-    amount: number
-  ): Promise<void> {
-    const message = `Payment of ${amount} FCFA received for order ${orderId}. Thank you!`;
-    
-    await this.sendNotification({
-      to: phone,
-      message,
-      type: 'sms',
-    });
+  async deleteAll(tenantId: string, customerId: string): Promise<number> {
+    const result = await this.notificationRepository.delete({ tenantId, customerId });
+    return result.affected ?? 0;
+  }
 
-    if (email) {
-      await this.sendNotification({
-        to: email,
-        subject: `Payment Confirmation`,
-        message,
-        type: 'email',
-      });
+  async createOrderNotification(
+    tenantId: string,
+    customerId: string,
+    orderId: string,
+    type: NotificationType,
+    orderStatus?: string,
+  ): Promise<Notification> {
+    const config = this.getOrderNotificationConfig(type, orderId, orderStatus);
+    return this.create({
+      tenantId,
+      customerId,
+      title: config.title,
+      message: config.message,
+      type,
+      metadata: { orderId, orderStatus },
+    });
+  }
+
+  private getOrderNotificationConfig(
+    type: NotificationType,
+    orderId: string,
+    orderStatus?: string,
+  ): { title: string; message: string } {
+    switch (type) {
+      case NotificationType.ORDER_CREATED:
+        return {
+          title: 'Order Created',
+          message: `Your order #${orderId.slice(0, 8)} has been placed successfully.`,
+        };
+      case NotificationType.ORDER_RECEIVED:
+        return {
+          title: 'Order Received',
+          message: `Your order #${orderId.slice(0, 8)} has been received at our facility.`,
+        };
+      case NotificationType.ORDER_PROCESSING:
+        return {
+          title: 'Order Processing',
+          message: `Your order #${orderId.slice(0, 8)} is now being processed.`,
+        };
+      case NotificationType.ORDER_READY:
+        return {
+          title: 'Ready for Pickup',
+          message: `Your order #${orderId.slice(0, 8)} is ready for pickup.`,
+        };
+      case NotificationType.ORDER_COMPLETED:
+        return {
+          title: 'Order Completed',
+          message: `Your order #${orderId.slice(0, 8)} has been completed. Thank you!`,
+        };
+      default:
+        return {
+          title: 'Order Update',
+          message: `Your order #${orderId.slice(0, 8)} status: ${orderStatus ?? type}`,
+        };
     }
   }
 }

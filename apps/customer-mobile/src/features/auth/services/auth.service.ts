@@ -15,7 +15,7 @@ export const authService = {
 
   async logout(): Promise<void> {
     try {
-      await api.post('/auth/logout');
+      await api.post(API_ENDPOINTS.AUTH.LOGOUT);
     } catch {
       // Server-side logout is best-effort
     }

@@ -149,13 +149,16 @@ export default function ScanScreen() {
       >
         <View style={[styles.overlay, { paddingTop: insets.top }]}>
           <View style={styles.topBar}>
-            <TouchableOpacity onPress={handleGoBack} style={styles.topBarButton}>
+            <TouchableOpacity onPress={handleGoBack} style={styles.topBarButton} accessibilityLabel="Close scanner" accessibilityRole="button">
               <MaterialCommunityIcons name="close" size={24} color={colors.white} />
             </TouchableOpacity>
-            <Text style={styles.topBarTitle}>Scan QR Code</Text>
+            <Text style={styles.topBarTitle} accessibilityRole="header">Scan QR Code</Text>
             <TouchableOpacity
               onPress={() => setTorchEnabled((prev) => !prev)}
               style={styles.topBarButton}
+              accessibilityLabel={torchEnabled ? 'Disable flash' : 'Enable flash'}
+              accessibilityRole="button"
+              accessibilityState={{ selected: torchEnabled }}
             >
               <MaterialCommunityIcons
                 name={torchEnabled ? 'flashlight' : 'flashlight-off'}
@@ -311,9 +314,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[3],
   },
   topBarButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',

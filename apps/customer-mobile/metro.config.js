@@ -13,9 +13,6 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, 'node_modules'),
 ];
 
-config.resolver.extraNodeModules = {
-  react: path.resolve(monorepoRoot, 'node_modules/react'),
-  'react-native': path.resolve(monorepoRoot, 'node_modules/react-native'),
-};
+config.resolver.extraNodeModules = {};
 
 module.exports = config;

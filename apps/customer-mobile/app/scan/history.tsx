@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import {
   View,
   FlatList,
@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useScanHistory, ScanHistoryItem } from '../../src/hooks/useScanHistory';
+import { useAnalytics } from '../../src/hooks/useAnalytics';
 import { colors } from '../../src/config/colors';
 import { spacing, borderRadius } from '../../src/config/spacing';
 import { typography } from '../../src/config/typography';
@@ -19,7 +20,12 @@ import { formatDate } from '../../src/utils/format';
 export default function ScanHistoryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const analytics = useAnalytics();
   const { scans, isLoading, clearHistory } = useScanHistory();
+
+  useEffect(() => {
+    analytics.track({ name: 'scan_history_viewed' });
+  }, [analytics]);
 
   const handleOpenOrder = useCallback(
     (item: ScanHistoryItem) => {

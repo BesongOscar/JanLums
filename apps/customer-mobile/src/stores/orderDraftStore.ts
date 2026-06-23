@@ -30,6 +30,10 @@ const initialState = {
   notes: '',
 };
 
+// Warning: Order drafts are persisted in AsyncStorage (unencrypted).
+// Avoid storing personally identifiable information (PII) or payment data here.
+// If order drafts grow to contain such data, migrate to expo-secure-store.
+
 export const useOrderDraftStore = create<OrderDraftState>()(
   persist(
     (set, get) => ({

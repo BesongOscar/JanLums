@@ -18,16 +18,26 @@ export type PaymentProvider = 'mtn' | 'orange' | 'cash' | 'card';
 
 export type AddressLabel = 'home' | 'work' | 'other';
 
-export type NotificationType =
+export type BackendNotificationType =
+  | 'order_created'
   | 'order_received'
-  | 'order_status_update'
+  | 'order_processing'
   | 'order_ready'
   | 'order_completed'
-  | 'order_cancelled'
-  | 'order_issue'
-  | 'payment_reminder'
-  | 'promotion'
   | 'system';
+
+export interface AppNotification {
+  id: string;
+  tenantId: string;
+  customerId: string;
+  title: string;
+  message: string;
+  type: BackendNotificationType;
+  isRead: boolean;
+  metadata: { orderId?: string; orderStatus?: string } | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface AuthUser {
   id: string;

@@ -4,8 +4,12 @@ import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { PaperProvider, DefaultTheme } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryProvider } from '../src/providers/QueryProvider';
+import { ErrorBoundary } from '../src/components/ErrorBoundary';
+import { OfflineBanner } from '../src/components/common/OfflineBanner';
 import { useAuthStore } from '../src/stores/authStore';
+import { initializeSentry } from '../src/lib/sentry';
 import { colors } from '../src/config/colors';
 
 const theme = {
@@ -55,6 +59,7 @@ function RootLayoutNav() {
   return (
     <View style={styles.container}>
       <Slot />
+      <OfflineBanner />
       {isLoading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={colors.primary[500]} />
@@ -80,15 +85,20 @@ export default function RootLayout() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
 
   useEffect(() => {
+    initializeSentry();
     restoreSession();
   }, [restoreSession]);
 
   return (
-    <QueryProvider>
-      <PaperProvider theme={theme}>
-        <RootLayoutNav />
-        <StatusBar style="auto" />
-      </PaperProvider>
-    </QueryProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <QueryProvider>
+          <PaperProvider theme={theme}>
+            <RootLayoutNav />
+            <StatusBar style="auto" />
+          </PaperProvider>
+        </QueryProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

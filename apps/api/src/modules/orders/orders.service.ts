@@ -4,6 +4,8 @@ import { DataSource, Repository } from 'typeorm';
 import { Order, OrderItem } from './entities/order.entity';
 import { Service } from '../services/entities/service.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/entities/notification.entity';
 
 @Injectable()
 export class OrdersService {
@@ -13,6 +15,7 @@ export class OrdersService {
     @InjectRepository(OrderItem)
     private readonly orderItemRepository: Repository<OrderItem>,
     private readonly dataSource: DataSource,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async findAll(tenantId: string, branchId?: string): Promise<Order[]> {
@@ -105,7 +108,16 @@ export class OrdersService {
 
       order.items = resolvedItems.map((ri) => orderItemRepo.create(ri));
 
-      return orderRepo.save(order);
+      const savedOrder = await orderRepo.save(order);
+
+      await this.notificationsService.createOrderNotification(
+        tenantId,
+        customerId,
+        savedOrder.id,
+        NotificationType.ORDER_CREATED,
+      );
+
+      return savedOrder;
     });
   }
 
@@ -115,8 +127,46 @@ export class OrdersService {
   }
 
   async updateStatus(id: string, tenantId: string, status: string): Promise<Order> {
+    const order = await this.findById(id, tenantId);
+    if (order.status === status) return order;
     await this.orderRepository.update({ id, tenantId }, { status });
+
+    if (order.customerId) {
+      const notificationType = this.mapStatusToNotificationType(status);
+      if (notificationType) {
+        await this.notificationsService.createOrderNotification(
+          tenantId,
+          order.customerId,
+          id,
+          notificationType,
+          status,
+        );
+      }
+    }
+
     return this.findById(id, tenantId);
+  }
+
+  private mapStatusToNotificationType(status: string): NotificationType | null {
+    switch (status) {
+      case 'received':
+        return NotificationType.ORDER_RECEIVED;
+      case 'tagged':
+      case 'in_wash':
+      case 'in_dry':
+      case 'in_press':
+      case 'quality_check':
+      case 'rewash':
+      case 'processing':
+        return NotificationType.ORDER_PROCESSING;
+      case 'ready':
+      case 'out_for_delivery':
+        return NotificationType.ORDER_READY;
+      case 'completed':
+        return NotificationType.ORDER_COMPLETED;
+      default:
+        return null;
+    }
   }
 
   async delete(id: string, tenantId: string): Promise<void> {

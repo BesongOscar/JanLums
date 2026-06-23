@@ -6,11 +6,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, RegisterFormData } from '../../src/features/auth/validation';
 import { useRegister } from '../../src/features/auth/hooks/useRegister';
 import { normalizeError } from '../../src/utils/errorHandler';
+import { useOfflineBlock } from '../../src/hooks/useOfflineBlock';
 import { CONFIG } from '../../src/config/environment';
 import { colors } from '../../src/config/colors';
 
 export default function RegisterScreen() {
   const registerMutation = useRegister();
+  const { blockIfOffline } = useOfflineBlock();
 
   const {
     control,
@@ -21,6 +23,7 @@ export default function RegisterScreen() {
   });
 
   const onSubmit = (data: RegisterFormData) => {
+    if (blockIfOffline('create an account')) return;
     registerMutation.mutate({
       firstName: data.firstName,
       lastName: data.lastName,
@@ -40,9 +43,9 @@ export default function RegisterScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} accessibilityLabel="Registration form">
         <View style={styles.header}>
-          <Text variant="displayMedium" style={styles.title}>
+          <Text variant="displayMedium" style={styles.title} accessibilityRole="header">
             Create Account
           </Text>
           <Text variant="bodyLarge" style={styles.subtitle}>
@@ -52,7 +55,7 @@ export default function RegisterScreen() {
 
         <View style={styles.form}>
           {errorMessage && (
-            <HelperText type="error" visible style={styles.error}>
+            <HelperText type="error" visible style={styles.error} accessibilityRole="alert">
               {errorMessage}
             </HelperText>
           )}
@@ -69,6 +72,7 @@ export default function RegisterScreen() {
                   onBlur={onBlur}
                   error={!!errors.firstName}
                   style={[styles.input, styles.halfInput]}
+                  accessibilityLabel="First name"
                 />
               )}
             />
@@ -83,12 +87,13 @@ export default function RegisterScreen() {
                   onBlur={onBlur}
                   error={!!errors.lastName}
                   style={[styles.input, styles.halfInput]}
+                  accessibilityLabel="Last name"
                 />
               )}
             />
           </View>
           {(errors.firstName || errors.lastName) && (
-            <HelperText type="error" visible>
+            <HelperText type="error" visible accessibilityRole="alert">
               {errors.firstName?.message || errors.lastName?.message}
             </HelperText>
           )}
@@ -107,11 +112,12 @@ export default function RegisterScreen() {
                 autoCapitalize="none"
                 autoComplete="email"
                 style={styles.input}
+                accessibilityLabel="Email address"
               />
             )}
           />
           {errors.email && (
-            <HelperText type="error" visible>
+            <HelperText type="error" visible accessibilityRole="alert">
               {errors.email.message}
             </HelperText>
           )}
@@ -128,11 +134,12 @@ export default function RegisterScreen() {
                 error={!!errors.phone}
                 keyboardType="phone-pad"
                 style={styles.input}
+                accessibilityLabel="Phone number"
               />
             )}
           />
           {errors.phone && (
-            <HelperText type="error" visible>
+            <HelperText type="error" visible accessibilityRole="alert">
               {errors.phone.message}
             </HelperText>
           )}
@@ -149,11 +156,12 @@ export default function RegisterScreen() {
                 error={!!errors.password}
                 secureTextEntry
                 style={styles.input}
+                accessibilityLabel="Password"
               />
             )}
           />
           {errors.password && (
-            <HelperText type="error" visible>
+            <HelperText type="error" visible accessibilityRole="alert">
               {errors.password.message}
             </HelperText>
           )}
@@ -170,11 +178,12 @@ export default function RegisterScreen() {
                 error={!!errors.confirmPassword}
                 secureTextEntry
                 style={styles.input}
+                accessibilityLabel="Confirm password"
               />
             )}
           />
           {errors.confirmPassword && (
-            <HelperText type="error" visible>
+            <HelperText type="error" visible accessibilityRole="alert">
               {errors.confirmPassword.message}
             </HelperText>
           )}
@@ -185,12 +194,14 @@ export default function RegisterScreen() {
             loading={registerMutation.isPending}
             disabled={registerMutation.isPending}
             style={styles.button}
+            accessibilityLabel="Create account"
+            accessibilityState={{ disabled: registerMutation.isPending }}
           >
             Create Account
           </Button>
 
           <Link href="/(auth)/login" asChild>
-            <Button mode="text" style={styles.linkButton}>
+            <Button mode="text" style={styles.linkButton} accessibilityLabel="Go to login">
               Already have an account? Log In
             </Button>
           </Link>

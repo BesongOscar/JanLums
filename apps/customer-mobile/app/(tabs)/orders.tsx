@@ -333,6 +333,8 @@ export default function OrdersScreen() {
         style={styles.fab}
         onPress={() => router.push('/order/services' as any)}
         activeOpacity={0.85}
+        accessibilityLabel="Create new order"
+        accessibilityRole="button"
       >
         <MaterialCommunityIcons name="plus" size={28} color={colors.white} />
       </TouchableOpacity>

@@ -8,9 +8,11 @@
     "start": "node dist/main",
     "start:dev": "pnpm dev",
     "start:prod": "node dist/main",
-    "migration:run": "npx typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
-    "migration:revert": "npx typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts",
-    "seed": "npx ts-node src/database/seeds/index.ts"
+    "migration:run": "node ../../node_modules/typeorm/cli-ts-node-commonjs.js migration:run -d src/database/data-source.ts",
+    "migration:revert": "node ../../node_modules/typeorm/cli-ts-node-commonjs.js migration:revert -d src/database/data-source.ts",
+    "seed": "npx ts-node src/database/seeds/index.ts",
+    "test": "jest",
+    "test:cov": "jest --coverage"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

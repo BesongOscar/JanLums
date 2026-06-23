@@ -65,15 +65,17 @@ export default function OnboardingScreen() {
             onPress={handleSkip}
             disabled={isCompleting}
             textColor={colors.text.secondary}
+            accessibilityLabel="Skip onboarding"
+            accessibilityState={{ disabled: isCompleting }}
           >
             Skip
           </Button>
         )}
       </View>
 
-      <View style={styles.slideContainer}>
+      <View style={styles.slideContainer} accessibilityLiveRegion="polite">
         <Text style={styles.icon}>{slide.icon}</Text>
-        <Text variant="headlineMedium" style={styles.title}>
+        <Text variant="headlineMedium" style={styles.title} accessibilityRole="header">
           {slide.title}
         </Text>
         <Text variant="bodyLarge" style={styles.description}>
@@ -82,7 +84,7 @@ export default function OnboardingScreen() {
       </View>
 
       <View style={styles.footer}>
-        <View style={styles.dots}>
+        <View style={styles.dots} accessibilityLabel={`Slide ${currentSlide + 1} of ${SLIDES.length}`} accessibilityRole="progressbar" accessibilityValue={{ now: currentSlide + 1, min: 1, max: SLIDES.length }}>
           {SLIDES.map((_, index) => (
             <View
               key={index}
@@ -101,6 +103,8 @@ export default function OnboardingScreen() {
           disabled={isCompleting}
           style={styles.button}
           contentStyle={styles.buttonContent}
+          accessibilityLabel={isLastSlide ? 'Get started' : 'Next slide'}
+          accessibilityState={{ disabled: isCompleting }}
         >
           {isLastSlide ? 'Get Started' : 'Next'}
         </Button>

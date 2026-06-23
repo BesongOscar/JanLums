@@ -9,6 +9,7 @@ overrides:
   react-dom: 18.2.0
   '@types/react': ~18.2.79
   '@types/react-dom': ~18.2.0
+  react-test-renderer: 18.2.0
 
 importers:
 
@@ -291,9 +292,6 @@ importers:
       prettier:
         specifier: ^3.2.0
         version: 3.8.4
-      react-test-renderer:
-        specifier: 18.2.0
-        version: 18.2.0(react@18.2.0)
       typescript:
         specifier: ~5.4.5
         version: 5.4.5
@@ -4613,7 +4611,7 @@ packages:
       jest: '>=28.0.0'
       react: 18.2.0
       react-native: '>=0.59'
-      react-test-renderer: '>=16.8.0'
+      react-test-renderer: 18.2.0
     peerDependenciesMeta:
       jest:
         optional: true

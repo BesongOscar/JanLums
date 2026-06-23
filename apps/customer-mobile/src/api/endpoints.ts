@@ -36,8 +36,11 @@ export const API_ENDPOINTS = {
     SHORT_CODE: '/qr-code/short-code',
   },
   NOTIFICATIONS: {
-    SEND: '/notifications/send',
-    ORDER_STATUS: '/notifications/order-status',
-    READY_PICKUP: '/notifications/ready-pickup',
+    ME: '/notifications/me',
+    UNREAD_COUNT: '/notifications/me/unread-count',
+    MARK_READ: (id: string) => `/notifications/${id}/read`,
+    MARK_ALL_READ: '/notifications/me/read-all',
+    DELETE: (id: string) => `/notifications/${id}`,
+    DELETE_ALL: '/notifications/me',
   },
 } as const;

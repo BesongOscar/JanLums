@@ -1,14 +1,21 @@
+import { useEffect } from 'react';
 import { ScrollView, Alert, StyleSheet } from 'react-native';
 import { List, Divider } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../src/stores/authStore';
+import { useAnalytics } from '../../../src/hooks/useAnalytics';
 import { colors } from '../../../src/config/colors';
 import { spacing } from '../../../src/config/spacing';
 import { typography } from '../../../src/config/typography';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const analytics = useAnalytics();
   const logout = useAuthStore((state) => state.logout);
+
+  useEffect(() => {
+    analytics.track({ name: 'settings_viewed' });
+  }, [analytics]);
 
   const handleLogout = () => {
     Alert.alert(
@@ -31,7 +38,7 @@ export default function SettingsScreen() {
   return (
     <ScrollView style={styles.container}>
       <List.Section>
-        <List.Subheader style={styles.subheader}>General</List.Subheader>
+        <List.Subheader style={styles.subheader} accessibilityRole="header">General</List.Subheader>
         <List.Item
           title="Profile"
           description="View and edit your personal information"
@@ -40,6 +47,7 @@ export default function SettingsScreen() {
           onPress={() => router.push('./edit')}
           titleStyle={styles.listTitle}
           descriptionStyle={styles.listDescription}
+          accessibilityLabel="View and edit your profile"
         />
         <Divider style={styles.divider} />
         <List.Item
@@ -54,7 +62,7 @@ export default function SettingsScreen() {
       <Divider style={styles.sectionDivider} />
 
       <List.Section>
-        <List.Subheader style={styles.subheader}>Account</List.Subheader>
+        <List.Subheader style={styles.subheader} accessibilityRole="header">Account</List.Subheader>
         <List.Item
           title="Log Out"
           description="Sign out of your account"
@@ -62,6 +70,8 @@ export default function SettingsScreen() {
           onPress={handleLogout}
           titleStyle={[styles.listTitle, { color: colors.error.DEFAULT }]}
           descriptionStyle={styles.listDescription}
+          accessibilityLabel="Log out of your account"
+          accessibilityHint="Opens a confirmation dialog to log out"
         />
       </List.Section>
     </ScrollView>

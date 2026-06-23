@@ -70,6 +70,8 @@ function EmptyState({ onViewHistory }: { onViewHistory: () => void }) {
         style={styles.viewHistoryButton}
         onPress={onViewHistory}
         activeOpacity={0.7}
+        accessibilityLabel="View order history"
+        accessibilityRole="button"
       >
         <MaterialCommunityIcons name="clipboard-list" size={18} color={colors.white} />
         <Text style={styles.viewHistoryButtonText}>View Order History</Text>
@@ -84,7 +86,7 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
       <MaterialCommunityIcons name="alert-circle-outline" size={64} color={colors.error.DEFAULT} />
       <Text style={styles.errorTitle}>Unable to load orders</Text>
       <Text style={styles.emptySubtitle}>{message}</Text>
-      <TouchableOpacity style={styles.retryButton} onPress={onRetry} activeOpacity={0.7}>
+      <TouchableOpacity style={styles.retryButton} onPress={onRetry} activeOpacity={0.7} accessibilityLabel="Retry loading orders" accessibilityRole="button">
         <MaterialCommunityIcons name="refresh" size={18} color={colors.white} />
         <Text style={styles.retryButtonText}>Retry</Text>
       </TouchableOpacity>
@@ -151,7 +153,7 @@ export default function TrackScreen() {
     ({ item }: { item: Order }) => {
       const translation = getStatusTranslation(item.status);
       return (
-        <TouchableOpacity onPress={() => handleOrderPress(item)} activeOpacity={0.7}>
+        <TouchableOpacity onPress={() => handleOrderPress(item)} activeOpacity={0.7} accessibilityLabel={`Order ${item.id.slice(0, 8)}, Status: ${translation.label}`} accessibilityRole="button">
           <Card style={styles.orderCard}>
             <Card.Content>
               <View style={styles.orderHeader}>
@@ -211,13 +213,13 @@ export default function TrackScreen() {
     return (
       <View>
         <View style={[styles.headerContainer, { paddingTop: insets.top + spacing[4] }]}>
-          <Text style={styles.headerTitle}>Track Orders</Text>
+          <Text style={styles.headerTitle} accessibilityRole="header">Track Orders</Text>
           <Text style={styles.headerSubtitle}>
             {activeCount > 0
               ? `${activeCount} active ${activeCount === 1 ? 'order' : 'orders'}`
               : 'No active orders'}
           </Text>
-          <TouchableOpacity style={styles.scanQrButton} onPress={handleScanQr} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.scanQrButton} onPress={handleScanQr} activeOpacity={0.7} accessibilityLabel="Scan QR code" accessibilityRole="button">
             <MaterialCommunityIcons name="qrcode-scan" size={16} color={colors.white} />
             <Text style={styles.scanQrButtonText}>Scan QR</Text>
           </TouchableOpacity>
@@ -234,6 +236,7 @@ export default function TrackScreen() {
                 value={showAll}
                 onValueChange={handleToggleShowAll}
                 color={colors.primary[500]}
+                accessibilityLabel={showAll ? 'Showing all orders, tap to show active only' : 'Showing active orders only, tap to show all'}
               />
             </View>
           </View>
@@ -244,6 +247,8 @@ export default function TrackScreen() {
             style={styles.refreshButton}
             onPress={handleRefresh}
             activeOpacity={0.7}
+            accessibilityLabel="Refresh orders"
+            accessibilityRole="button"
           >
             <MaterialCommunityIcons name="refresh" size={16} color={colors.primary[500]} />
             <Text style={styles.refreshButtonLabel}>Refresh</Text>
@@ -255,9 +260,9 @@ export default function TrackScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + spacing[4] }]}>
+      <View style={[styles.container, { paddingTop: insets.top + spacing[4] }]} accessibilityLabel="Loading orders">
         <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>Track Orders</Text>
+          <Text style={styles.headerTitle} accessibilityRole="header">Track Orders</Text>
         </View>
         <View style={styles.skeletonList}>
           <SkeletonCard />

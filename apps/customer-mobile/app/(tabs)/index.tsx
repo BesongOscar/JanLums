@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { View, ScrollView, RefreshControl, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, Card, ActivityIndicator } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCustomerProfile } from '../../src/hooks/useCustomerProfile';
 import { useMyOrders } from '../../src/hooks/useMyOrders';
+import { useAnalytics } from '../../src/hooks/useAnalytics';
 import { colors } from '../../src/config/colors';
 import { spacing, borderRadius } from '../../src/config/spacing';
 import { typography } from '../../src/config/typography';
@@ -23,6 +24,12 @@ function SkeletonBlock({ height }: { height: number }) {
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const analytics = useAnalytics();
+
+  useEffect(() => {
+    analytics.track({ name: 'home_screen_viewed' });
+  }, [analytics]);
+
   const {
     data: profile,
     isLoading: profileLoading,
@@ -130,6 +137,7 @@ export default function HomeScreen() {
           <Card
             style={styles.activeOrderCard}
             onPress={() => router.push(`/orders/${stats.mostRecentActive.id}` as any)}
+            accessibilityLabel="Active orders card"
           >
             <Card.Content>
               <View style={styles.activeOrderHeader}>
@@ -152,6 +160,7 @@ export default function HomeScreen() {
                 style={styles.trackOrderButton}
                 onPress={() => router.push('/(tabs)/track' as any)}
                 activeOpacity={0.7}
+                accessibilityLabel="Go to tracking screen"
               >
                 <MaterialCommunityIcons name="map-marker-path" size={16} color={colors.white} />
                 <Text style={styles.trackOrderButtonText}>Track Order</Text>
@@ -201,25 +210,25 @@ export default function HomeScreen() {
 
       <Text style={styles.sectionTitle}>Quick Actions</Text>
       <View style={styles.quickActions}>
-        <Card style={styles.actionCard} onPress={() => router.push('/order/services' as any)}>
+        <Card style={styles.actionCard} onPress={() => router.push('/order/services' as any)} accessibilityLabel="Create new order">
           <Card.Content style={styles.actionContent}>
             <MaterialCommunityIcons name="plus-circle" size={28} color={colors.primary[500]} />
             <Text style={styles.actionLabel}>New Order</Text>
           </Card.Content>
         </Card>
-        <Card style={styles.actionCard} onPress={() => router.push('/(tabs)/orders')}>
+        <Card style={styles.actionCard} onPress={() => router.push('/(tabs)/orders')} accessibilityLabel="View all orders">
           <Card.Content style={styles.actionContent}>
             <MaterialCommunityIcons name="clipboard-list" size={28} color={colors.primary[500]} />
             <Text style={styles.actionLabel}>View Orders</Text>
           </Card.Content>
         </Card>
-        <Card style={styles.actionCard} onPress={() => router.push('/(tabs)/track')}>
+        <Card style={styles.actionCard} onPress={() => router.push('/(tabs)/track')} accessibilityLabel="Track orders">
           <Card.Content style={styles.actionContent}>
             <MaterialCommunityIcons name="map-marker-path" size={28} color={colors.primary[500]} />
             <Text style={styles.actionLabel}>Track Orders</Text>
           </Card.Content>
         </Card>
-        <Card style={styles.actionCard} onPress={() => router.push('/scan' as any)}>
+        <Card style={styles.actionCard} onPress={() => router.push('/scan' as any)} accessibilityLabel="Scan QR code">
           <Card.Content style={styles.actionContent}>
             <MaterialCommunityIcons name="qrcode-scan" size={28} color={colors.primary[500]} />
             <Text style={styles.actionLabel}>Scan QR</Text>

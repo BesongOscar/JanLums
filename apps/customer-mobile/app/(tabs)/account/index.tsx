@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { View, ScrollView, RefreshControl, StyleSheet } from 'react-native';
 import { Text, Card, Button, ActivityIndicator, Divider } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -5,15 +6,21 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCustomerProfile } from '../../../src/hooks/useCustomerProfile';
 import { useAuthStore } from '../../../src/stores/authStore';
+import { useAnalytics } from '../../../src/hooks/useAnalytics';
 import { colors } from '../../../src/config/colors';
-import { spacing } from '../../../src/config/spacing';
+import { spacing, borderRadius } from '../../../src/config/spacing';
 import { typography } from '../../../src/config/typography';
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const analytics = useAnalytics();
   const { user, logout } = useAuthStore();
   const { data: profile, isLoading, isError, refetch, isRefetching } = useCustomerProfile();
+
+  useEffect(() => {
+    analytics.track({ name: 'account_screen_viewed' });
+  }, [analytics]);
 
   const handleLogout = async () => {
     await logout();
@@ -60,7 +67,7 @@ export default function AccountScreen() {
 
       <Card style={styles.card}>
         <Card.Content>
-          <Text style={styles.sectionTitle}>Personal Information</Text>
+          <Text style={styles.sectionTitle} accessibilityRole="header">Personal Information</Text>
           <Divider style={styles.divider} />
 
           <View style={styles.infoRow}>
@@ -119,6 +126,7 @@ export default function AccountScreen() {
           onPress={() => router.push('/(tabs)/account/edit')}
           style={styles.editButton}
           icon="account-edit"
+          accessibilityLabel="Edit your profile"
         >
           Edit Profile
         </Button>
@@ -128,6 +136,7 @@ export default function AccountScreen() {
           onPress={() => router.push('/(tabs)/account/settings')}
           style={styles.settingsButton}
           icon="cog"
+          accessibilityLabel="Open settings"
         >
           Settings
         </Button>
@@ -138,6 +147,7 @@ export default function AccountScreen() {
           style={styles.logoutButton}
           textColor={colors.error.DEFAULT}
           icon="logout"
+          accessibilityLabel="Log out of your account"
         >
           Log Out
         </Button>

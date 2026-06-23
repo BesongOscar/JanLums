@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useEffect } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { Text, Button, TextInput, ActivityIndicator, Snackbar } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +10,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { AxiosError } from 'axios';
 import { useCustomerProfile } from '../../../src/hooks/useCustomerProfile';
 import { useUpdateProfile } from '../../../src/hooks/useUpdateProfile';
+import { useAnalytics } from '../../../src/hooks/useAnalytics';
+import { useOfflineBlock } from '../../../src/hooks/useOfflineBlock';
 import { profileUpdateSchema } from '../../../src/utils/validation';
 import type { ProfileUpdateFormData } from '../../../src/utils/validation';
 import { colors } from '../../../src/config/colors';
@@ -18,6 +21,13 @@ import { typography } from '../../../src/config/typography';
 export default function EditProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const analytics = useAnalytics();
+  const { blockIfOffline } = useOfflineBlock();
+
+  useEffect(() => {
+    analytics.track({ name: 'profile_viewed' });
+  }, [analytics]);
+
   const {
     data: profile,
     isLoading: isProfileLoading,
@@ -53,13 +63,16 @@ export default function EditProfileScreen() {
   });
 
   const onSubmit = async (data: ProfileUpdateFormData) => {
+    if (blockIfOffline('update your profile')) return;
     try {
       await updateProfileMutation.mutateAsync(data);
+      analytics.track({ name: 'profile_updated' });
       setSnackbarMessage('Profile updated successfully');
       setSnackbarError(false);
       setSnackbarVisible(true);
       setTimeout(() => router.back(), 1500);
     } catch (error) {
+      analytics.track({ name: 'profile_update_failed', properties: { error: (error as Error).message } });
       const axiosError = error as AxiosError<{ message?: string }>;
       const message =
         axiosError?.response?.data?.message || axiosError?.message || 'Failed to update profile';

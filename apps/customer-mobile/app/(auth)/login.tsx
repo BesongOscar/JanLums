@@ -6,10 +6,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginFormData } from '../../src/features/auth/validation';
 import { useLogin } from '../../src/features/auth/hooks/useLogin';
 import { normalizeError } from '../../src/utils/errorHandler';
+import { useOfflineBlock } from '../../src/hooks/useOfflineBlock';
 import { colors } from '../../src/config/colors';
 
 export default function LoginScreen() {
   const loginMutation = useLogin();
+  const { blockIfOffline } = useOfflineBlock();
 
   const {
     control,
@@ -20,6 +22,7 @@ export default function LoginScreen() {
   });
 
   const onSubmit = (data: LoginFormData) => {
+    if (blockIfOffline('log in')) return;
     loginMutation.mutate(data);
   };
 
@@ -32,9 +35,13 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        accessibilityLabel="Login form"
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
-          <Text variant="displayMedium" style={styles.title}>
+          <Text variant="displayMedium" style={styles.title} accessibilityRole="header">
             JanLums
           </Text>
           <Text variant="bodyLarge" style={styles.subtitle}>
@@ -44,7 +51,7 @@ export default function LoginScreen() {
 
         <View style={styles.form}>
           {errorMessage && (
-            <HelperText type="error" visible style={styles.error}>
+            <HelperText type="error" visible style={styles.error} accessibilityRole="alert">
               {errorMessage}
             </HelperText>
           )}
@@ -63,11 +70,12 @@ export default function LoginScreen() {
                 autoCapitalize="none"
                 autoComplete="email"
                 style={styles.input}
+                accessibilityLabel="Email address"
               />
             )}
           />
           {errors.email && (
-            <HelperText type="error" visible>
+            <HelperText type="error" visible accessibilityRole="alert">
               {errors.email.message}
             </HelperText>
           )}
@@ -84,11 +92,12 @@ export default function LoginScreen() {
                 error={!!errors.password}
                 secureTextEntry
                 style={styles.input}
+                accessibilityLabel="Password"
               />
             )}
           />
           {errors.password && (
-            <HelperText type="error" visible>
+            <HelperText type="error" visible accessibilityRole="alert">
               {errors.password.message}
             </HelperText>
           )}
@@ -99,12 +108,14 @@ export default function LoginScreen() {
             loading={loginMutation.isPending}
             disabled={loginMutation.isPending}
             style={styles.button}
+            accessibilityLabel="Log in to your account"
+            accessibilityState={{ disabled: loginMutation.isPending }}
           >
             Log In
           </Button>
 
           <Link href="/(auth)/register" asChild>
-            <Button mode="text" style={styles.linkButton}>
+            <Button mode="text" style={styles.linkButton} accessibilityLabel="Create a new account">
               Don&apos;t have an account? Sign Up
             </Button>
           </Link>

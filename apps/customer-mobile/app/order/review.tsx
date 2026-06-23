@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAnalytics } from '../../src/hooks/useAnalytics';
+import { useOfflineBlock } from '../../src/hooks/useOfflineBlock';
 import { useOrderDraftStore } from '../../src/stores/orderDraftStore';
 import { useCustomerProfile } from '../../src/hooks/useCustomerProfile';
 import { useAuthStore } from '../../src/stores/authStore';
@@ -27,14 +28,15 @@ function EmptyDraft() {
       <MaterialCommunityIcons name="cart-outline" size={64} color={colors.text.tertiary} />
       <Text style={styles.emptyTitle}>Your order is empty</Text>
       <Text style={styles.emptySubtitle}>Add services to get started</Text>
-      <Button
-        mode="contained"
-        onPress={() => router.push('/order/services' as any)}
-        style={styles.browseButton}
-        contentStyle={styles.browseButtonContent}
-      >
-        Browse Services
-      </Button>
+        <Button
+            mode="contained"
+            onPress={() => router.push('/order/services' as any)}
+            style={styles.browseButton}
+            contentStyle={styles.browseButtonContent}
+            accessibilityLabel="Browse services"
+          >
+            Browse Services
+          </Button>
     </View>
   );
 }
@@ -43,6 +45,7 @@ export default function ReviewScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const analytics = useAnalytics();
+  const { blockIfOffline } = useOfflineBlock();
 
   const selectedServices = useOrderDraftStore((s) => s.selectedServices);
   const branchId = useOrderDraftStore((s) => s.branchId);
@@ -96,6 +99,8 @@ export default function ReviewScreen() {
   const handleConfirmSubmit = useCallback(() => {
     setShowConfirm(false);
 
+    if (blockIfOffline('submit your order')) return;
+
     if (!tenantId || !customerId) {
       setErrorMessage('Unable to verify your account');
       return;
@@ -119,16 +124,16 @@ export default function ReviewScreen() {
         setErrorMessage(normalized.message);
       },
     });
-  }, [tenantId, customerId, toOrderPayload, createOrder, analytics, reset, router]);
+  }, [tenantId, customerId, toOrderPayload, createOrder, analytics, reset, router, blockIfOffline]);
 
   if (selectedServices.length === 0) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.headerBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="Go back" accessibilityRole="button">
             <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerBarTitle}>Review Order</Text>
+          <Text style={styles.headerBarTitle} accessibilityRole="header">Review Order</Text>
           <View style={{ width: 40 }} />
         </View>
         <EmptyDraft />
@@ -139,12 +144,12 @@ export default function ReviewScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.headerBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="Go back" accessibilityRole="button">
           <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerBarTitle}>Review Order</Text>
-        <TouchableOpacity onPress={() => router.push('/order/services' as any)} style={styles.addMoreButton}>
-          <MaterialCommunityIcons name="plus-circle" size={22} color={colors.primary[500]} />
+        <Text style={styles.headerBarTitle} accessibilityRole="header">Review Order</Text>
+        <TouchableOpacity onPress={() => router.push('/order/services' as any)} style={styles.addMoreButton} accessibilityLabel="Add more services" accessibilityRole="button">
+          <MaterialCommunityIcons name="plus" size={24} color={colors.primary[500]} />
         </TouchableOpacity>
       </View>
 
@@ -166,6 +171,9 @@ export default function ReviewScreen() {
                         onPress={() => handleQuantityChange(index, -1)}
                         disabled={item.quantity <= 1}
                         activeOpacity={0.7}
+                        accessibilityLabel={`Decrease quantity of ${item.serviceName}`}
+                        accessibilityRole="button"
+                        accessibilityState={{ disabled: item.quantity <= 1 }}
                       >
                         <MaterialCommunityIcons
                           name="minus"
@@ -178,6 +186,8 @@ export default function ReviewScreen() {
                         style={styles.qtyButton}
                         onPress={() => handleQuantityChange(index, 1)}
                         activeOpacity={0.7}
+                        accessibilityLabel={`Increase quantity of ${item.serviceName}`}
+                        accessibilityRole="button"
                       >
                         <MaterialCommunityIcons name="plus" size={16} color={colors.primary[500]} />
                       </TouchableOpacity>
@@ -192,7 +202,9 @@ export default function ReviewScreen() {
                     </Text>
                     <TouchableOpacity
                       onPress={() => handleRemove(index)}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                      accessibilityLabel={`Remove ${item.serviceName} from order`}
+                      accessibilityRole="button"
                     >
                       <MaterialCommunityIcons name="delete-outline" size={20} color={colors.error.DEFAULT} />
                     </TouchableOpacity>
@@ -261,7 +273,7 @@ export default function ReviewScreen() {
 
       <Portal>
         <Dialog visible={showConfirm} onDismiss={() => setShowConfirm(false)}>
-          <Dialog.Title>Submit Order</Dialog.Title>
+          <Dialog.Title accessibilityRole="header">Submit Order</Dialog.Title>
           <Dialog.Content>
             <Text style={styles.dialogText}>
               You are about to submit your order with {itemCount} item{itemCount !== 1 ? 's' : ''} for{' '}
@@ -269,11 +281,13 @@ export default function ReviewScreen() {
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setShowConfirm(false)}>Cancel</Button>
+            <Button onPress={() => setShowConfirm(false)} accessibilityLabel="Cancel order submission">Cancel</Button>
             <Button
               onPress={handleConfirmSubmit}
               loading={isSubmitting}
               disabled={isSubmitting}
+              accessibilityLabel="Confirm order submission"
+              accessibilityState={{ disabled: isSubmitting }}
             >
               Confirm
             </Button>
@@ -287,6 +301,7 @@ export default function ReviewScreen() {
           onPress={handleSelectBranch}
           style={styles.branchButton}
           contentStyle={styles.branchButtonContent}
+          accessibilityLabel={branchId ? 'Change branch' : 'Select branch'}
         >
           {branchId ? 'Change Branch' : 'Select Branch'}
         </Button>
@@ -297,6 +312,8 @@ export default function ReviewScreen() {
           loading={isSubmitting}
           style={styles.submitButton}
           contentStyle={styles.submitButtonContent}
+          accessibilityLabel="Submit order"
+          accessibilityState={{ disabled: !isDraftValid || isSubmitting }}
         >
           Submit Order
         </Button>
@@ -377,12 +394,14 @@ const styles = StyleSheet.create({
     gap: spacing[2],
   },
   qtyButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.primary[50],
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.gray[100],
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   qtyButtonDisabled: {
     backgroundColor: colors.gray[100],
