@@ -219,6 +219,12 @@ export default function HomeScreen() {
             <Text style={styles.actionLabel}>Edit Profile</Text>
           </Card.Content>
         </Card>
+        <Card style={styles.actionCard} onPress={() => router.push('/scan' as any)}>
+          <Card.Content style={styles.actionContent}>
+            <MaterialCommunityIcons name="qrcode-scan" size={28} color={colors.primary[500]} />
+            <Text style={styles.actionLabel}>Scan Order QR</Text>
+          </Card.Content>
+        </Card>
       </View>
     </ScrollView>
   );

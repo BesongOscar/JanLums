@@ -141,6 +141,10 @@ export default function OrdersScreen() {
     refetch();
   }, [refetch]);
 
+  const handleScanAnotherOrder = useCallback(() => {
+    router.push('/scan' as any);
+  }, [router]);
+
   const handleSearchChange = useCallback((text: string) => {
     setSearchQuery(text);
   }, []);
@@ -301,6 +305,18 @@ export default function OrdersScreen() {
         ListHeaderComponent={renderListHeader}
         ListEmptyComponent={
           <EmptyState onRefresh={handleRefresh} />
+        }
+        ListFooterComponent={
+          searchedOrders.length > 0 ? (
+            <TouchableOpacity
+              style={styles.scanAnotherButton}
+              onPress={handleScanAnotherOrder}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="qrcode-scan" size={18} color={colors.primary[500]} />
+              <Text style={styles.scanAnotherText}>Scan Another Order</Text>
+            </TouchableOpacity>
+          ) : null
         }
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
@@ -478,6 +494,18 @@ const styles = StyleSheet.create({
   skeletonBlock: {
     backgroundColor: colors.gray[100],
     borderRadius: borderRadius.sm,
+  },
+  scanAnotherButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
+    paddingVertical: spacing[4],
+    marginTop: spacing[2],
+  },
+  scanAnotherText: {
+    ...typography.button,
+    color: colors.primary[500],
   },
   skeletonList: {
     paddingTop: spacing[4],

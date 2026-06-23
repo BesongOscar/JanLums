@@ -4,7 +4,11 @@ export interface AnalyticsEvent {
     | 'order_detail_opened'
     | 'track_screen_viewed'
     | 'active_order_opened'
-    | 'order_status_viewed';
+    | 'order_status_viewed'
+    | 'qr_scan_started'
+    | 'qr_scan_success'
+    | 'qr_scan_failed'
+    | 'qr_order_opened';
   properties?: Record<string, unknown>;
 }
 

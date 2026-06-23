@@ -139,6 +139,10 @@ export default function TrackScreen() {
     router.push('/(tabs)/orders' as any);
   }, [router]);
 
+  const handleScanQr = useCallback(() => {
+    router.push('/scan' as any);
+  }, [router]);
+
   const handleToggleShowAll = useCallback(() => {
     setShowAll((prev) => !prev);
   }, []);
@@ -213,6 +217,10 @@ export default function TrackScreen() {
               ? `${activeCount} active ${activeCount === 1 ? 'order' : 'orders'}`
               : 'No active orders'}
           </Text>
+          <TouchableOpacity style={styles.scanQrButton} onPress={handleScanQr} activeOpacity={0.7}>
+            <MaterialCommunityIcons name="qrcode-scan" size={16} color={colors.white} />
+            <Text style={styles.scanQrButtonText}>Scan QR</Text>
+          </TouchableOpacity>
         </View>
 
         {activeCount > 0 && (
@@ -484,6 +492,21 @@ const styles = StyleSheet.create({
   skeletonList: {
     paddingTop: spacing[4],
     gap: spacing[2],
+  },
+  scanQrButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary[500],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.full,
+    gap: spacing[1],
+    marginTop: spacing[3],
+  },
+  scanQrButtonText: {
+    ...typography.button,
+    color: colors.white,
   },
   skeletonTimeline: {
     backgroundColor: colors.surface,
