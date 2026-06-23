@@ -329,6 +329,13 @@ export default function OrdersScreen() {
           />
         }
       />
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push('/order/services' as any)}
+        activeOpacity={0.85}
+      >
+        <MaterialCommunityIcons name="plus" size={28} color={colors.white} />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -510,5 +517,21 @@ const styles = StyleSheet.create({
   skeletonList: {
     paddingTop: spacing[4],
     gap: spacing[2],
+  },
+  fab: {
+    position: 'absolute',
+    right: spacing[4],
+    bottom: spacing[6],
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary[500],
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 6,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
 });

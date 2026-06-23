@@ -12,4 +12,9 @@ export const orderService = {
     const response = await api.get<Order>(API_ENDPOINTS.ORDERS.BY_ID(id));
     return response.data;
   },
+
+  async createOrder(payload: Record<string, unknown>): Promise<Order> {
+    const response = await api.post<Order>(API_ENDPOINTS.ORDERS.BASE, payload);
+    return response.data;
+  },
 };

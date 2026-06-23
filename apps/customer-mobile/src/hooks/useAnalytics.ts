@@ -8,7 +8,12 @@ export interface AnalyticsEvent {
     | 'qr_scan_started'
     | 'qr_scan_success'
     | 'qr_scan_failed'
-    | 'qr_order_opened';
+    | 'qr_order_opened'
+    | 'service_viewed'
+    | 'service_added_to_order'
+    | 'order_review_opened'
+    | 'order_submission_started'
+    | 'order_submission_completed';
   properties?: Record<string, unknown>;
 }
 

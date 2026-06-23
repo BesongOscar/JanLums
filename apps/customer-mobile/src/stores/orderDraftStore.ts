@@ -1,51 +1,33 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { OrderDraftItem } from '../types';
+import { ServiceDraftItem } from '../types';
 
 interface OrderDraftState {
-  serviceId: string | null;
-  serviceName: string | null;
-  items: OrderDraftItem[];
-  pickupType: 'drop-off' | 'pickup' | 'delivery';
+  selectedServices: ServiceDraftItem[];
   branchId: string | null;
   branchName: string | null;
-  scheduledDate: string | null;
-  scheduledTime: string | null;
   notes: string;
-  isExpress: boolean;
 
   getEstimatedSubtotal: () => number;
-  getEstimatedTax: () => number;
-  getEstimatedTotal: () => number;
   getItemCount: () => number;
   isValid: () => boolean;
 
-  setService: (id: string, name: string) => void;
-  addItem: (item: OrderDraftItem) => void;
-  removeItem: (index: number) => void;
-  updateItem: (index: number, updates: Partial<OrderDraftItem>) => void;
-  setPickupType: (type: 'drop-off' | 'pickup' | 'delivery') => void;
+  addService: (item: ServiceDraftItem) => void;
+  removeService: (index: number) => void;
+  updateServiceQuantity: (index: number, quantity: number) => void;
+  updateServiceNotes: (index: number, notes: string) => void;
   setBranch: (id: string, name: string) => void;
-  setScheduledDate: (date: string | null) => void;
-  setScheduledTime: (time: string | null) => void;
   setNotes: (notes: string) => void;
-  setExpress: (isExpress: boolean) => void;
   reset: () => void;
-  toOrderPayload: (tenantId: string, customerId: string) => Record<string, any>;
+  toOrderPayload: () => Record<string, any>;
 }
 
 const initialState = {
-  serviceId: null,
-  serviceName: null,
-  items: [] as OrderDraftItem[],
-  pickupType: 'drop-off' as const,
-  branchId: null,
-  branchName: null,
-  scheduledDate: null,
-  scheduledTime: null,
+  selectedServices: [] as ServiceDraftItem[],
+  branchId: null as string | null,
+  branchName: null as string | null,
   notes: '',
-  isExpress: false,
 };
 
 export const useOrderDraftStore = create<OrderDraftState>()(
@@ -54,75 +36,58 @@ export const useOrderDraftStore = create<OrderDraftState>()(
       ...initialState,
 
       getEstimatedSubtotal: () => {
-        const { items } = get();
-        return items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-      },
-
-      getEstimatedTax: () => {
-        return Math.round(get().getEstimatedSubtotal() * 0.1925);
-      },
-
-      getEstimatedTotal: () => {
-        const subtotal = get().getEstimatedSubtotal();
-        const tax = get().getEstimatedTax();
-        const express = get().isExpress ? Math.round(subtotal * 0.5) : 0;
-        return subtotal + tax + express;
+        const { selectedServices } = get();
+        return selectedServices.reduce(
+          (sum, item) => sum + item.estimatedPrice * item.quantity,
+          0
+        );
       },
 
       getItemCount: () => {
-        return get().items.reduce((sum, item) => sum + item.quantity, 0);
+        return get().selectedServices.reduce((sum, item) => sum + item.quantity, 0);
       },
 
       isValid: () => {
         const state = get();
-        return state.serviceId !== null && state.items.length > 0 && state.branchId !== null;
+        return state.selectedServices.length > 0 && state.branchId !== null;
       },
 
-      setService: (id, name) => set({ serviceId: id, serviceName: name }),
+      addService: (item) =>
+        set((state) => ({ selectedServices: [...state.selectedServices, item] })),
 
-      addItem: (item) => set((state) => ({ items: [...state.items, item] })),
-
-      removeItem: (index) =>
+      removeService: (index) =>
         set((state) => ({
-          items: state.items.filter((_, i) => i !== index),
+          selectedServices: state.selectedServices.filter((_, i) => i !== index),
         })),
 
-      updateItem: (index, updates) =>
+      updateServiceQuantity: (index, quantity) =>
         set((state) => ({
-          items: state.items.map((item, i) => (i === index ? { ...item, ...updates } : item)),
+          selectedServices: state.selectedServices.map((item, i) =>
+            i === index ? { ...item, quantity } : item
+          ),
         })),
 
-      setPickupType: (type) => set({ pickupType: type }),
+      updateServiceNotes: (index, notes) =>
+        set((state) => ({
+          selectedServices: state.selectedServices.map((item, i) =>
+            i === index ? { ...item, notes } : item
+          ),
+        })),
+
       setBranch: (id, name) => set({ branchId: id, branchName: name }),
-      setScheduledDate: (date) => set({ scheduledDate: date }),
-      setScheduledTime: (time) => set({ scheduledTime: time }),
       setNotes: (notes) => set({ notes }),
-      setExpress: (isExpress) => set({ isExpress }),
 
       reset: () => set(initialState),
 
-      toOrderPayload: (tenantId, customerId) => {
+      toOrderPayload: () => {
         const state = get();
         return {
-          tenantId,
-          customerId,
           branchId: state.branchId,
-          status: 'pending',
-          isExpress: state.isExpress,
           notes: state.notes,
-          pickupDate:
-            state.scheduledDate && state.scheduledTime
-              ? `${state.scheduledDate}T${state.scheduledTime}`
-              : undefined,
-          items: state.items.map((item) => ({
-            garmentType: item.garmentType,
-            fabricType: item.fabricType,
-            color: item.color,
+          items: state.selectedServices.map((item) => ({
+            serviceId: item.serviceId,
             quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            totalPrice: item.unitPrice * item.quantity,
-            specialInstructions: item.specialInstructions,
-            status: 'pending',
+            specialInstructions: item.notes,
           })),
         };
       },

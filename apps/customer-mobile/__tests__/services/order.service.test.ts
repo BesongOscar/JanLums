@@ -4,6 +4,7 @@ import { Order } from '../../src/types';
 
 jest.mock('../../src/api/client', () => ({
   get: jest.fn(),
+  post: jest.fn(),
 }));
 
 const mockedApi = api as jest.Mocked<typeof api>;
@@ -71,6 +72,22 @@ const mockOrders: Order[] = [
     updatedAt: '2024-01-12T16:00:00Z',
   },
 ];
+
+const createOrderPayload = {
+  tenantId: 'tenant-1',
+  customerId: 'cust-1',
+  branchId: 'branch-1',
+  status: 'pending',
+  items: [
+    {
+      garmentType: 'Wash & Fold',
+      quantity: 2,
+      unitPrice: 1500,
+      totalPrice: 3000,
+      status: 'pending',
+    },
+  ],
+};
 
 describe('orderService', () => {
   beforeEach(() => {
@@ -151,6 +168,51 @@ describe('orderService', () => {
       (mockedApi.get as jest.Mock).mockRejectedValue(error);
 
       await expect(orderService.getMyOrders()).rejects.toEqual(error);
+    });
+  });
+
+  describe('createOrder', () => {
+    it('creates an order successfully', async () => {
+      (mockedApi.post as jest.Mock).mockResolvedValue({ data: mockOrder });
+
+      const result = await orderService.createOrder(createOrderPayload);
+
+      expect(mockedApi.post).toHaveBeenCalledWith('/orders', createOrderPayload);
+      expect(result).toEqual(mockOrder);
+      expect(result.status).toBe('pending');
+    });
+
+    it('sends correct payload structure', async () => {
+      (mockedApi.post as jest.Mock).mockResolvedValue({ data: mockOrder });
+
+      await orderService.createOrder(createOrderPayload);
+
+      const sentPayload = (mockedApi.post as jest.Mock).mock.calls[0][1];
+      expect(sentPayload).toHaveProperty('tenantId');
+      expect(sentPayload).toHaveProperty('branchId');
+      expect(sentPayload).toHaveProperty('items');
+      expect(sentPayload.items).toHaveLength(1);
+    });
+
+    it('handles validation failure', async () => {
+      const error = { response: { status: 400, data: { message: 'Validation failed' } } };
+      (mockedApi.post as jest.Mock).mockRejectedValue(error);
+
+      await expect(orderService.createOrder(createOrderPayload)).rejects.toEqual(error);
+    });
+
+    it('handles network failure', async () => {
+      const error = new Error('Network error');
+      (mockedApi.post as jest.Mock).mockRejectedValue(error);
+
+      await expect(orderService.createOrder(createOrderPayload)).rejects.toThrow('Network error');
+    });
+
+    it('handles server error', async () => {
+      const error = { response: { status: 500, data: { message: 'Internal server error' } } };
+      (mockedApi.post as jest.Mock).mockRejectedValue(error);
+
+      await expect(orderService.createOrder(createOrderPayload)).rejects.toEqual(error);
     });
   });
 });

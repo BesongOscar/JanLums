@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Order, OrderItem } from './entities/order.entity';
+import { Service } from '../services/entities/service.entity';
+import { CreateOrderDto } from './dto/create-order.dto';
 
 @Injectable()
 export class OrdersService {
@@ -10,6 +12,7 @@ export class OrdersService {
     private readonly orderRepository: Repository<Order>,
     @InjectRepository(OrderItem)
     private readonly orderItemRepository: Repository<OrderItem>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async findAll(tenantId: string, branchId?: string): Promise<Order[]> {
@@ -43,16 +46,67 @@ export class OrdersService {
     return order;
   }
 
-  async create(data: Partial<Order> & { items?: Partial<OrderItem>[] }): Promise<Order> {
-    const order = this.orderRepository.create(data);
-    
-    if (data.items && data.items.length > 0) {
-      order.items = data.items.map(item => this.orderItemRepository.create(item));
-      order.subtotal = order.items.reduce((sum, item) => sum + Number(item.totalPrice), 0);
-      order.total = order.subtotal + Number(order.tax || 0) - Number(order.discount || 0);
-    }
+  async create(
+    tenantId: string,
+    customerId: string,
+    dto: CreateOrderDto,
+  ): Promise<Order> {
+    return this.dataSource.transaction(async (manager) => {
+      const orderRepo = manager.getRepository(Order);
+      const orderItemRepo = manager.getRepository(OrderItem);
+      const serviceRepo = manager.getRepository(Service);
 
-    return this.orderRepository.save(order);
+      const resolvedItems: Partial<OrderItem>[] = [];
+
+      for (const item of dto.items) {
+        const service = await serviceRepo.findOne({
+          where: { id: item.serviceId, tenantId },
+        });
+
+        if (!service) {
+          throw new NotFoundException(`Service "${item.serviceId}" not found`);
+        }
+
+        const unitPrice = dto.isExpress && service.expressPrice != null
+          ? Number(service.expressPrice)
+          : Number(service.basePrice);
+
+        const totalPrice = unitPrice * item.quantity;
+
+        resolvedItems.push({
+          serviceId: item.serviceId,
+          garmentType: service.name,
+          quantity: item.quantity,
+          unitPrice,
+          totalPrice,
+          specialInstructions: item.specialInstructions,
+          status: 'pending',
+        });
+      }
+
+      const subtotal = resolvedItems.reduce(
+        (sum, item) => sum + item.totalPrice!,
+        0,
+      );
+      const tax = Number((subtotal * 0.1925).toFixed(2));
+      const total = subtotal + tax;
+
+      const order = orderRepo.create({
+        tenantId,
+        customerId,
+        branchId: dto.branchId,
+        notes: dto.notes,
+        isExpress: dto.isExpress ?? false,
+        status: 'pending',
+        subtotal,
+        tax,
+        total,
+      });
+
+      order.items = resolvedItems.map((ri) => orderItemRepo.create(ri));
+
+      return orderRepo.save(order);
+    });
   }
 
   async update(id: string, tenantId: string, data: Partial<Order>): Promise<Order> {

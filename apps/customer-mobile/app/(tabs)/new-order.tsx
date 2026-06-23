@@ -1,11 +1,27 @@
-import { Placeholder } from '../../src/components/Placeholder';
+import { useEffect } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
+import { colors } from '../../src/config/colors';
 
-export default function NewOrderScreen() {
+export default function NewOrderRedirectScreen() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/order/services');
+  }, [router]);
+
   return (
-    <Placeholder
-      icon="plus-circle"
-      title="New Order"
-      description="Schedule a new laundry pickup and delivery."
-    />
+    <View style={styles.container}>
+      <ActivityIndicator size="large" color={colors.primary[500]} />
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+});

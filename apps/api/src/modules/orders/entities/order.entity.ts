@@ -90,6 +90,9 @@ export class OrderItem {
   @JoinColumn({ name: 'order_id' })
   order: Order;
 
+  @Column({ type: 'uuid', nullable: true })
+  serviceId?: string;
+
   @Column()
   garmentType: string;
 

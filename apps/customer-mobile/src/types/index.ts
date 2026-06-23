@@ -166,6 +166,14 @@ export interface OrderDraftItem {
   specialInstructions?: string;
 }
 
+export interface ServiceDraftItem {
+  serviceId: string;
+  serviceName: string;
+  quantity: number;
+  estimatedPrice: number;
+  notes?: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;

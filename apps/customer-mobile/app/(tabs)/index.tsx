@@ -201,6 +201,12 @@ export default function HomeScreen() {
 
       <Text style={styles.sectionTitle}>Quick Actions</Text>
       <View style={styles.quickActions}>
+        <Card style={styles.actionCard} onPress={() => router.push('/order/services' as any)}>
+          <Card.Content style={styles.actionContent}>
+            <MaterialCommunityIcons name="plus-circle" size={28} color={colors.primary[500]} />
+            <Text style={styles.actionLabel}>New Order</Text>
+          </Card.Content>
+        </Card>
         <Card style={styles.actionCard} onPress={() => router.push('/(tabs)/orders')}>
           <Card.Content style={styles.actionContent}>
             <MaterialCommunityIcons name="clipboard-list" size={28} color={colors.primary[500]} />
@@ -210,19 +216,13 @@ export default function HomeScreen() {
         <Card style={styles.actionCard} onPress={() => router.push('/(tabs)/track')}>
           <Card.Content style={styles.actionContent}>
             <MaterialCommunityIcons name="map-marker-path" size={28} color={colors.primary[500]} />
-            <Text style={styles.actionLabel}>Track Active Orders</Text>
-          </Card.Content>
-        </Card>
-        <Card style={styles.actionCard} onPress={() => router.push('/(tabs)/account/edit')}>
-          <Card.Content style={styles.actionContent}>
-            <MaterialCommunityIcons name="account-edit" size={28} color={colors.primary[500]} />
-            <Text style={styles.actionLabel}>Edit Profile</Text>
+            <Text style={styles.actionLabel}>Track Orders</Text>
           </Card.Content>
         </Card>
         <Card style={styles.actionCard} onPress={() => router.push('/scan' as any)}>
           <Card.Content style={styles.actionContent}>
             <MaterialCommunityIcons name="qrcode-scan" size={28} color={colors.primary[500]} />
-            <Text style={styles.actionLabel}>Scan Order QR</Text>
+            <Text style={styles.actionLabel}>Scan QR</Text>
           </Card.Content>
         </Card>
       </View>

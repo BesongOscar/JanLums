@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import { CustomersService } from '../customers/customers.service';
 import { Order } from './entities/order.entity';
+import { CreateOrderDto } from './dto/create-order.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
@@ -59,8 +60,17 @@ export class OrdersController {
 
   @Post()
   @ApiOperation({ summary: 'Create order' })
-  async create(@Body() data: any): Promise<Order> {
-    return this.ordersService.create(data);
+  @ApiResponse({ status: 201, description: 'Order created' })
+  async create(
+    @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('userId') userId: string,
+    @Body() dto: CreateOrderDto,
+  ): Promise<Order> {
+    const customer = await this.customersService.findByUserId(userId);
+    if (!customer) {
+      throw new NotFoundException('Customer profile not found');
+    }
+    return this.ordersService.create(tenantId, customer.id, dto);
   }
 
   @Put(':id')
