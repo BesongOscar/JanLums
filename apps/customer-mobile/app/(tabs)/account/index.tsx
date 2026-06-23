@@ -116,7 +116,7 @@ export default function AccountScreen() {
       <View style={styles.actions}>
         <Button
           mode="contained"
-          onPress={() => router.push('./edit')}
+          onPress={() => router.push('/(tabs)/account/edit')}
           style={styles.editButton}
           icon="account-edit"
         >
@@ -125,7 +125,7 @@ export default function AccountScreen() {
 
         <Button
           mode="outlined"
-          onPress={() => router.push('./settings')}
+          onPress={() => router.push('/(tabs)/account/settings')}
           style={styles.settingsButton}
           icon="cog"
         >
