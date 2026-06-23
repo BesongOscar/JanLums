@@ -41,27 +41,18 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="new-order"
+        name="track"
         options={{
-          title: 'New Order',
+          title: 'Track',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="plus-circle" size={size} color={color} />
+            <MaterialCommunityIcons name="map-marker-path" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="notifications"
+        name="account"
         options={{
-          title: 'Alerts',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="bell" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
+          title: 'Account',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="account" size={size} color={color} />
           ),

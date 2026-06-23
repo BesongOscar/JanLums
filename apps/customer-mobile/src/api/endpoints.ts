@@ -18,12 +18,14 @@ export const API_ENDPOINTS = {
   },
   ORDERS: {
     BASE: '/orders',
+    ME: '/orders/me',
     STATS: '/orders/stats',
     BY_ID: (id: string) => `/orders/${id}`,
     STATUS: (id: string) => `/orders/${id}/status`,
   },
   CUSTOMERS: {
     BASE: '/customers',
+    ME: '/customers/me',
     SEARCH: '/customers/search',
     BY_ID: (id: string) => `/customers/${id}`,
   },

@@ -7,6 +7,8 @@ export const profileUpdateSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(50),
   lastName: z.string().min(1, 'Last name is required').max(50),
   phone: z.string().min(9, 'Invalid phone number').max(15).optional(),
+  address: z.string().max(200).optional(),
+  city: z.string().max(100).optional(),
 });
 
 export const addressSchema = z.object({
