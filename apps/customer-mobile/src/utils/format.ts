@@ -41,6 +41,10 @@ export function formatPhoneNumber(phone: string): string {
   return phone;
 }
 
+export function formatOrderNumber(id: string): string {
+  return `Order #JL-${id.slice(0, 5).toUpperCase()}`;
+}
+
 export function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength) + '...';

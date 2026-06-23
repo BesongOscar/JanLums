@@ -8,6 +8,39 @@ jest.mock('../../src/api/client', () => ({
 
 const mockedApi = api as jest.Mocked<typeof api>;
 
+const mockOrder: Order = {
+  id: '1',
+  tenantId: 'tenant-1',
+  branchId: 'branch-1',
+  status: 'pending',
+  subtotal: 5000,
+  tax: 250,
+  discount: 0,
+  total: 5250,
+  amountPaid: 0,
+  isExpress: false,
+  createdAt: '2024-01-15T10:00:00Z',
+  updatedAt: '2024-01-15T10:00:00Z',
+  items: [
+    {
+      id: 'item-1',
+      orderId: '1',
+      garmentType: 'Shirt',
+      quantity: 2,
+      unitPrice: 1500,
+      totalPrice: 3000,
+      status: 'pending',
+      createdAt: '2024-01-15T10:00:00Z',
+      updatedAt: '2024-01-15T10:00:00Z',
+    },
+  ],
+  branch: {
+    id: 'branch-1',
+    name: 'Downtown Branch',
+    address: '123 Main Street',
+  },
+};
+
 const mockOrders: Order[] = [
   {
     id: '1',
@@ -42,6 +75,49 @@ const mockOrders: Order[] = [
 describe('orderService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('getOrderById', () => {
+    it('returns a single order on success', async () => {
+      (mockedApi.get as jest.Mock).mockResolvedValue({ data: mockOrder });
+
+      const result = await orderService.getOrderById('1');
+
+      expect(mockedApi.get).toHaveBeenCalledWith('/orders/1');
+      expect(result).toEqual(mockOrder);
+      expect(result.id).toBe('1');
+    });
+
+    it('includes items and branch when available', async () => {
+      (mockedApi.get as jest.Mock).mockResolvedValue({ data: mockOrder });
+
+      const result = await orderService.getOrderById('1');
+
+      expect(result.items).toHaveLength(1);
+      expect(result.items?.[0].garmentType).toBe('Shirt');
+      expect(result.branch?.name).toBe('Downtown Branch');
+    });
+
+    it('throws on 404 not found', async () => {
+      const error = { response: { status: 404, data: { message: 'Order not found' } } };
+      (mockedApi.get as jest.Mock).mockRejectedValue(error);
+
+      await expect(orderService.getOrderById('999')).rejects.toEqual(error);
+    });
+
+    it('throws on 401 unauthorized', async () => {
+      const error = { response: { status: 401 } };
+      (mockedApi.get as jest.Mock).mockRejectedValue(error);
+
+      await expect(orderService.getOrderById('1')).rejects.toEqual(error);
+    });
+
+    it('throws on network failure', async () => {
+      const error = new Error('Network error');
+      (mockedApi.get as jest.Mock).mockRejectedValue(error);
+
+      await expect(orderService.getOrderById('1')).rejects.toThrow('Network error');
+    });
   });
 
   describe('getMyOrders', () => {

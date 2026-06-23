@@ -7,4 +7,9 @@ export const orderService = {
     const response = await api.get<Order[]>(API_ENDPOINTS.ORDERS.ME);
     return response.data;
   },
+
+  async getOrderById(id: string): Promise<Order> {
+    const response = await api.get<Order>(API_ENDPOINTS.ORDERS.BY_ID(id));
+    return response.data;
+  },
 };
