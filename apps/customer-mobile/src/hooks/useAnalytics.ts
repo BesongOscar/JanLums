@@ -1,5 +1,10 @@
 export interface AnalyticsEvent {
-  name: 'order_viewed' | 'order_detail_opened';
+  name:
+    | 'order_viewed'
+    | 'order_detail_opened'
+    | 'track_screen_viewed'
+    | 'active_order_opened'
+    | 'order_status_viewed';
   properties?: Record<string, unknown>;
 }
 

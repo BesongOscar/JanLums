@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { View, ScrollView, RefreshControl, StyleSheet } from 'react-native';
+import { View, ScrollView, RefreshControl, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, Card, ActivityIndicator } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -43,11 +43,16 @@ export default function HomeScreen() {
 
   const stats = useMemo(() => {
     const list = orders ?? [];
+    const active = list.filter((o) => !['completed', 'cancelled'].includes(o.status));
+    const sortedActive = [...active].sort(
+      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    );
     return {
       total: list.length,
-      active: list.filter((o) => !['completed', 'cancelled'].includes(o.status)).length,
+      active: active.length,
       completed: list.filter((o) => o.status === 'completed').length,
       recent: list.slice(0, 3),
+      mostRecentActive: sortedActive[0] ?? null,
     };
   }, [orders]);
 
@@ -119,6 +124,43 @@ export default function HomeScreen() {
         </View>
       </View>
 
+      {stats.active > 0 && stats.mostRecentActive && (
+        <View>
+          <Text style={styles.sectionTitle}>Active Orders</Text>
+          <Card
+            style={styles.activeOrderCard}
+            onPress={() => router.push(`/orders/${stats.mostRecentActive.id}` as any)}
+          >
+            <Card.Content>
+              <View style={styles.activeOrderHeader}>
+                <View style={styles.activeOrderCountBadge}>
+                  <Text style={styles.activeOrderCountText}>
+                    {stats.active}
+                  </Text>
+                </View>
+                <View style={styles.activeOrderInfo}>
+                  <Text style={styles.activeOrderTitle}>
+                    {stats.active} Active {stats.active === 1 ? 'Order' : 'Orders'}
+                  </Text>
+                  <Text style={styles.activeOrderSubtitle}>
+                    Most recent: Order #JL-{stats.mostRecentActive.id.slice(0, 5).toUpperCase()}
+                  </Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={24} color={colors.text.tertiary} />
+              </View>
+              <TouchableOpacity
+                style={styles.trackOrderButton}
+                onPress={() => router.push('/(tabs)/track' as any)}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons name="map-marker-path" size={16} color={colors.white} />
+                <Text style={styles.trackOrderButtonText}>Track Order</Text>
+              </TouchableOpacity>
+            </Card.Content>
+          </Card>
+        </View>
+      )}
+
       <Text style={styles.sectionTitle}>Recent Orders</Text>
       {stats.recent.length === 0 ? (
         <Card style={styles.emptyCard}>
@@ -163,6 +205,12 @@ export default function HomeScreen() {
           <Card.Content style={styles.actionContent}>
             <MaterialCommunityIcons name="clipboard-list" size={28} color={colors.primary[500]} />
             <Text style={styles.actionLabel}>View Orders</Text>
+          </Card.Content>
+        </Card>
+        <Card style={styles.actionCard} onPress={() => router.push('/(tabs)/track')}>
+          <Card.Content style={styles.actionContent}>
+            <MaterialCommunityIcons name="map-marker-path" size={28} color={colors.primary[500]} />
+            <Text style={styles.actionLabel}>Track Active Orders</Text>
           </Card.Content>
         </Card>
         <Card style={styles.actionCard} onPress={() => router.push('/(tabs)/account/edit')}>
@@ -302,6 +350,58 @@ const styles = StyleSheet.create({
     color: colors.text.tertiary,
     marginTop: spacing[3],
     textAlign: 'center',
+  },
+  activeOrderCard: {
+    backgroundColor: colors.surface,
+    marginBottom: spacing[4],
+    borderRadius: borderRadius.md,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary[500],
+  },
+  activeOrderHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[3],
+  },
+  activeOrderCountBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary[500],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  activeOrderCountText: {
+    ...typography['label-lg'],
+    color: colors.white,
+    fontWeight: '700',
+  },
+  activeOrderInfo: {
+    flex: 1,
+  },
+  activeOrderTitle: {
+    ...typography['label-lg'],
+    color: colors.text.primary,
+    fontWeight: '600',
+  },
+  activeOrderSubtitle: {
+    ...typography['body-sm'],
+    color: colors.text.secondary,
+    marginTop: 2,
+  },
+  trackOrderButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary[500],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.md,
+    gap: spacing[2],
+  },
+  trackOrderButtonText: {
+    ...typography.button,
+    color: colors.white,
   },
   quickActions: {
     flexDirection: 'row',

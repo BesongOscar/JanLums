@@ -12,6 +12,7 @@ import { spacing, borderRadius } from '../../src/config/spacing';
 import { typography } from '../../src/config/typography';
 import { formatCurrency, formatDate, formatOrderNumber } from '../../src/utils/format';
 import { getStatusTranslation } from '../../src/utils/statusMapper';
+import { getOrderStatusDescription } from '../../src/utils/orderStatusDescriptions';
 
 function SkeletonSection() {
   return (
@@ -67,6 +68,7 @@ export default function OrderDetailScreen() {
   useEffect(() => {
     if (order) {
       analytics.track({ name: 'order_detail_opened', properties: { orderId: order.id } });
+      analytics.track({ name: 'order_status_viewed', properties: { orderId: order.id, status: order.status } });
     }
   }, [order, analytics]);
 
@@ -156,6 +158,28 @@ export default function OrderDetailScreen() {
           <Text style={styles.orderDate}>{formatDate(order.createdAt, 'long')}</Text>
         </View>
 
+        <SectionCard title="Tracking">
+          <View style={styles.trackingSection}>
+            <View style={styles.trackingStatusRow}>
+              <View style={[styles.trackingStatusDot, { backgroundColor: statusTranslation.backgroundColor }]}>
+                <MaterialCommunityIcons
+                  name={statusTranslation.icon as any}
+                  size={16}
+                  color={statusTranslation.color}
+                />
+              </View>
+              <View style={styles.trackingStatusInfo}>
+                <Text style={styles.trackingStatusLabel}>{statusTranslation.label}</Text>
+                <Text style={styles.trackingStatusDescription}>
+                  {getOrderStatusDescription(order.status)}
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View style={{ height: spacing[3] }} />
+          <OrderTimeline currentStatus={order.status} />
+        </SectionCard>
+
         <SectionCard title="Pricing">
           <DetailRow label="Subtotal" value={formatCurrency(order.subtotal)} />
           <DetailRow label="Tax" value={formatCurrency(order.tax)} />
@@ -200,8 +224,6 @@ export default function OrderDetailScreen() {
             </View>
           </SectionCard>
         )}
-
-        <OrderTimeline currentStatus={order.status} />
 
         <View style={{ height: spacing[8] }} />
       </ScrollView>
@@ -400,6 +422,35 @@ const styles = StyleSheet.create({
   skeletonBlock: {
     backgroundColor: colors.gray[100],
     borderRadius: borderRadius.sm,
+  },
+  trackingSection: {
+    gap: spacing[1],
+  },
+  trackingStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[3],
+  },
+  trackingStatusDot: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  trackingStatusInfo: {
+    flex: 1,
+  },
+  trackingStatusLabel: {
+    ...typography['label-lg'],
+    color: colors.text.primary,
+    fontWeight: '600',
+  },
+  trackingStatusDescription: {
+    ...typography['body-sm'],
+    color: colors.text.secondary,
+    marginTop: spacing[1],
+    lineHeight: 18,
   },
   skeletonContent: {
     paddingTop: spacing[4],
