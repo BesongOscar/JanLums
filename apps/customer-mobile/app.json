@@ -45,7 +45,8 @@
         {
           "cameraPermission": "JanLums needs camera access to scan QR codes for order pickup."
         }
-      ]
+      ],
+      "sentry-expo"
     ],
     "experiments": {
       "typedRoutes": true

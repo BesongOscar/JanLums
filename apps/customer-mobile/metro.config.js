@@ -13,6 +13,8 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, 'node_modules'),
 ];
 
-config.resolver.extraNodeModules = {};
+config.resolver.extraNodeModules = {
+  'expo-router': path.resolve(monorepoRoot, 'node_modules/expo-router'),
+};
 
 module.exports = config;

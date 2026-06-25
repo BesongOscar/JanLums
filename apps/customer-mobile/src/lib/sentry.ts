@@ -1,18 +1,12 @@
-import * as Sentry from '@sentry/react-native';
+import * as Sentry from 'sentry-expo';
 import { CONFIG } from '../config/environment';
 
 export function initializeSentry() {
-  if (CONFIG.sentryDsn) {
-    Sentry.init({
-      dsn: CONFIG.sentryDsn,
-      environment: CONFIG.env,
-      enableAutoPerformanceTracing: true,
-      tracesSampleRate: CONFIG.isProduction ? 0.2 : 1.0,
-      attachScreenshot: false,
-      enableWatchdogTerminationTracking: false,
-      enabled: true,
-    });
-  }
-}
+  if (!CONFIG.sentryDsn) return;
 
-export default Sentry;
+  Sentry.init({
+    dsn: CONFIG.sentryDsn,
+    environment: CONFIG.env,
+    enabled: true,
+  });
+}
