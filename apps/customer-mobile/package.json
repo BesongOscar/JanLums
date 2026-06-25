@@ -2,9 +2,9 @@
   "name": "@janlums/customer-mobile",
   "version": "1.0.0",
   "private": true,
-  "main": "expo-router/entry",
+  "main": "index.js",
   "scripts": {
-    "dev": "EXPO_USE_METRO_WORKSPACE_ROOT=1 expo start",
+    "dev": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "lint": "eslint . --ext .ts,.tsx",
