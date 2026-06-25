@@ -13,6 +13,7 @@ import { typography } from '../../src/config/typography';
 import { formatCurrency, formatDate, formatOrderNumber } from '../../src/utils/format';
 import { getStatusTranslation } from '../../src/utils/statusMapper';
 import { getOrderStatusDescription } from '../../src/utils/orderStatusDescriptions';
+import { OrderItem } from '../../src/types';
 
 function SkeletonSection() {
   return (
@@ -192,7 +193,7 @@ export default function OrderDetailScreen() {
 
         {itemCount > 0 && (
           <SectionCard title={`Items (${itemCount})`}>
-            {order.items?.map((item, index) => (
+            {order.items?.map((item: OrderItem, index: number) => (
               <View key={item.id || index}>
                 <View style={styles.itemRow}>
                   <View style={styles.itemInfo}>

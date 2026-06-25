@@ -12,6 +12,7 @@ import { spacing, borderRadius } from '../../src/config/spacing';
 import { typography } from '../../src/config/typography';
 import { formatCurrency, formatDate } from '../../src/utils/format';
 import { STATUS_MAP, getStatusTranslation } from '../../src/utils/statusMapper';
+import { Order } from '../../src/types';
 
 function SkeletonBlock({ height }: { height: number }) {
   return (
@@ -50,14 +51,14 @@ export default function HomeScreen() {
 
   const stats = useMemo(() => {
     const list = orders ?? [];
-    const active = list.filter((o) => !['completed', 'cancelled'].includes(o.status));
+    const active = list.filter((o: Order) => !['completed', 'cancelled'].includes(o.status));
     const sortedActive = [...active].sort(
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     );
     return {
       total: list.length,
       active: active.length,
-      completed: list.filter((o) => o.status === 'completed').length,
+      completed: list.filter((o: Order) => o.status === 'completed').length,
       recent: list.slice(0, 3),
       mostRecentActive: sortedActive[0] ?? null,
     };
@@ -179,7 +180,7 @@ export default function HomeScreen() {
           </Card.Content>
         </Card>
       ) : (
-        stats.recent.map((order) => {
+        stats.recent.map((order: Order) => {
           const translation = getStatusTranslation(order.status as any);
           return (
             <Card key={order.id} style={styles.orderCard}>

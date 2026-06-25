@@ -209,7 +209,7 @@ export default function ServiceDetailScreen() {
               <View style={styles.fabricSection}>
                 <Text style={styles.infoLabel}>Fabric Types</Text>
                 <View style={styles.fabricList}>
-                  {service.fabricTypes.map((fabric) => (
+                  {service.fabricTypes.map((fabric: string) => (
                     <View key={fabric} style={styles.fabricChip}>
                       <Text style={styles.fabricChipText}>{fabric}</Text>
                     </View>

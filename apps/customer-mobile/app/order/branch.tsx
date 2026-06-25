@@ -69,7 +69,7 @@ export default function BranchSelectionScreen() {
     [setBranch, router]
   );
 
-  const activeBranches = branches?.filter((b) => b.isActive) ?? [];
+  const activeBranches = branches?.filter((b: Branch) => b.isActive) ?? [];
 
   const renderBranchItem = useCallback(
     ({ item }: { item: Branch }) => {

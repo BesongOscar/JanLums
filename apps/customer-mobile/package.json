@@ -4,7 +4,7 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
-    "dev": "expo start",
+    "dev": "EXPO_USE_METRO_WORKSPACE_ROOT=1 expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "lint": "eslint . --ext .ts,.tsx",
@@ -14,15 +14,14 @@
     "test:coverage": "jest --coverage",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
-    "prepare": "husky",
-    "postinstall": "node -e \"const fs=require('fs'),p=require('path');const src=p.resolve('..','..','node_modules','expo-router');const dst=p.resolve('node_modules','expo-router');if(!fs.existsSync(dst)){fs.mkdirSync(p.dirname(dst),{recursive:true});fs.symlinkSync(src,dst)}\""
+    "prepare": "husky"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
     "@hookform/resolvers": "^3.4.0",
     "@react-native-async-storage/async-storage": "1.23.1",
-    "@react-native-community/netinfo": "^11.3.0",
-    "@sentry/react-native": "^5.0.0",
+    "@react-native-community/netinfo": "11.3.1",
+    "@sentry/react-native": "~5.24.3",
     "@tanstack/react-query": "^5.40.0",
     "axios": "^1.7.0",
     "date-fns": "^3.6.0",
@@ -60,7 +59,7 @@
     "jest-expo": "~51.0.0",
     "lint-staged": "^15.2.0",
     "prettier": "^3.2.0",
-    "typescript": "~5.4.5"
+    "typescript": "~5.3.3"
   },
   "eslintConfig": {
     "extends": [

@@ -34,11 +34,11 @@ export function useMarkNotificationRead() {
       await queryClient.cancelQueries({ queryKey: notificationKeys.list() });
       const previous = queryClient.getQueryData<AppNotification[]>(notificationKeys.list());
 
-      queryClient.setQueryData<AppNotification[]>(notificationKeys.list(), (old) =>
-        old?.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
+      queryClient.setQueryData<AppNotification[]>(notificationKeys.list(), (old: AppNotification[] | undefined) =>
+        old?.map((n: AppNotification) => (n.id === id ? { ...n, isRead: true } : n)),
       );
 
-      queryClient.setQueryData<{ count: number }>(notificationKeys.unreadCount(), (old) =>
+      queryClient.setQueryData<{ count: number }>(notificationKeys.unreadCount(), (old: { count: number } | undefined) =>
         old ? { count: Math.max(0, old.count - 1) } : old,
       );
 
@@ -65,8 +65,8 @@ export function useMarkAllNotificationsRead() {
       await queryClient.cancelQueries({ queryKey: notificationKeys.list() });
       const previous = queryClient.getQueryData<AppNotification[]>(notificationKeys.list());
 
-      queryClient.setQueryData<AppNotification[]>(notificationKeys.list(), (old) =>
-        old?.map((n) => ({ ...n, isRead: true })),
+      queryClient.setQueryData<AppNotification[]>(notificationKeys.list(), (old: AppNotification[] | undefined) =>
+        old?.map((n: AppNotification) => ({ ...n, isRead: true })),
       );
 
       queryClient.setQueryData<{ count: number }>(notificationKeys.unreadCount(), { count: 0 });
@@ -94,13 +94,13 @@ export function useDeleteNotification() {
       await queryClient.cancelQueries({ queryKey: notificationKeys.list() });
       const previous = queryClient.getQueryData<AppNotification[]>(notificationKeys.list());
 
-      const deleted = previous?.find((n) => n.id === id);
-      queryClient.setQueryData<AppNotification[]>(notificationKeys.list(), (old) =>
-        old?.filter((n) => n.id !== id),
+      const deleted = previous?.find((n: AppNotification) => n.id === id);
+      queryClient.setQueryData<AppNotification[]>(notificationKeys.list(), (old: AppNotification[] | undefined) =>
+        old?.filter((n: AppNotification) => n.id !== id),
       );
 
       if (deleted && !deleted.isRead) {
-        queryClient.setQueryData<{ count: number }>(notificationKeys.unreadCount(), (old) =>
+        queryClient.setQueryData<{ count: number }>(notificationKeys.unreadCount(), (old: { count: number } | undefined) =>
           old ? { count: Math.max(0, old.count - 1) } : old,
         );
       }

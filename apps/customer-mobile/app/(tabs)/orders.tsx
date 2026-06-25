@@ -115,13 +115,13 @@ export default function OrdersScreen() {
   const filteredOrders = useMemo(() => {
     const list = orders ?? [];
     const allowedStatuses = FILTER_STATUS_MAP[activeFilter];
-    return list.filter((order) => allowedStatuses.includes(order.status));
+    return list.filter((order: Order) => allowedStatuses.includes(order.status));
   }, [orders, activeFilter]);
 
   const searchedOrders = useMemo(() => {
     if (!debouncedSearch.trim()) return filteredOrders;
     const query = debouncedSearch.trim().toLowerCase();
-    return filteredOrders.filter((order) => {
+    return filteredOrders.filter((order: Order) => {
       const orderNumber = `#jl-${order.id.slice(0, 5).toLowerCase()}`;
       const translation = getStatusTranslation(order.status);
       const statusLabel = translation.label.toLowerCase();

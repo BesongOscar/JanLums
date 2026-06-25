@@ -85,12 +85,12 @@ export default function ServicesScreen() {
     if (!services) return [];
     let result = services;
     if (activeCategory !== CATEGORY_ALL) {
-      result = result.filter((s) => s.category === activeCategory);
+      result = result.filter((s: Service) => s.category === activeCategory);
     }
     if (debouncedSearch.trim()) {
       const q = debouncedSearch.trim().toLowerCase();
       result = result.filter(
-        (s) =>
+        (s: Service) =>
           s.name.toLowerCase().includes(q) ||
           s.category.toLowerCase().includes(q)
       );
@@ -304,7 +304,7 @@ export default function ServicesScreen() {
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="search-off" size={48} color={colors.text.tertiary} />
+            <MaterialCommunityIcons name="package-variant-closed" size={48} color={colors.text.tertiary} />
             <Text style={styles.emptyTitle}>No results</Text>
             <Text style={styles.emptySubtitle}>Try a different search or filter</Text>
           </View>
