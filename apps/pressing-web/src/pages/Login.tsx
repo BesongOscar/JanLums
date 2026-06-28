@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -28,7 +27,7 @@ export default function Login() {
       }
 
       const data = await res.json();
-      localStorage.setItem('token', data.accessToken);
+      login(data.accessToken);
       navigate('/');
     } catch (err: any) {
       setError(err.message || 'Login failed');
@@ -38,155 +37,61 @@ export default function Login() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#F0F3F8',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px',
-    }}>
-      <div style={{
-        maxWidth: '420px',
-        width: '100%',
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-        padding: '40px',
-      }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{
-            width: '64px',
-            height: '64px',
-            backgroundColor: '#0000EE',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 16px',
-          }}>
-            <span style={{ color: 'white', fontWeight: 'bold', fontSize: '20px' }}>P237</span>
+    <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-5">
+      <div className="max-w-sm w-full bg-white rounded-lg shadow-lg p-10">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center mx-auto mb-4">
+            <span className="text-white font-bold text-xl">P237</span>
           </div>
-          <h2 style={{ fontSize: '28px', fontWeight: 'bold', color: '#111827', marginBottom: '8px' }}>
-            Pressing 237
-          </h2>
-          <p style={{ color: '#6b7280', fontSize: '15px' }}>Sign in to your account</p>
+          <h2 className="text-2xl font-bold text-neutral-800 mb-1">Pressing 237</h2>
+          <p className="text-sm text-neutral-500">Sign in to your account</p>
         </div>
 
         <form onSubmit={handleSubmit}>
           {error && (
-            <div style={{
-              backgroundColor: '#FEF2F2',
-              border: '1px solid #FECACA',
-              color: '#DC2626',
-              padding: '12px 16px',
-              borderRadius: '4px',
-              marginBottom: '20px',
-              fontSize: '14px',
-            }}>
+            <div className="bg-danger-50 border border-danger-200 text-danger px-4 py-3 rounded mb-5 text-sm">
               {error}
             </div>
           )}
 
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>
-              Email address
-            </label>
+          <div className="mb-5">
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">Email address</label>
             <input
-              type="email"
-              required
+              type="email" required
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="Enter your email"
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                border: '1px solid #D1D5DB',
-                borderRadius: '4px',
-                fontSize: '14px',
-                outline: 'none',
-                transition: 'border-color 0.2s',
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#0000EE'}
-              onBlur={(e) => e.target.style.borderColor = '#D1D5DB'}
+              className="w-full px-3.5 py-2.5 border border-neutral-300 rounded text-sm outline-none focus:border-primary transition-colors"
             />
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>
-              Password
-            </label>
-            <div style={{ position: 'relative' }}>
+          <div className="mb-5">
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">Password</label>
+            <div className="relative">
               <input
-                type={showPassword ? 'text' : 'password'}
-                required
+                type={showPassword ? 'text' : 'password'} required
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder="Enter your password"
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  paddingRight: '40px',
-                  border: '1px solid #D1D5DB',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  outline: 'none',
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#0000EE'}
-                onBlur={(e) => e.target.style.borderColor = '#D1D5DB'}
+                className="w-full px-3.5 py-2.5 pr-10 border border-neutral-300 rounded text-sm outline-none focus:border-primary transition-colors"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: '#6b7280',
-                  fontSize: '12px',
-                }}
-              >
+              <button type="button" onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-none border-none cursor-pointer text-neutral-500 text-xs">
                 {showPassword ? 'Hide' : 'Show'}
               </button>
             </div>
           </div>
 
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '24px',
-          }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: '#374151' }}>
-              <input type="checkbox" style={{ width: '16px', height: '16px' }} />
+          <div className="flex items-center justify-between mb-6">
+            <label className="flex items-center gap-2 cursor-pointer text-sm text-neutral-600">
+              <input type="checkbox" className="w-4 h-4" />
               Remember me
             </label>
-
-            <a href="#" style={{ color: '#0000EE', fontSize: '14px', textDecoration: 'none' }}>
-              Forgot password?
-            </a>
+            <a href="#" className="text-primary text-sm no-underline">Forgot password?</a>
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            style={{
-              width: '100%',
-              padding: '12px',
-              backgroundColor: '#0000EE',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '15px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              opacity: isLoading ? 0.7 : 1,
-            }}
-          >
+          <button type="submit" disabled={isLoading}
+            className="w-full py-3 bg-primary text-white rounded text-sm font-bold border-none cursor-pointer hover:bg-primary-dark disabled:opacity-70 transition-colors">
             {isLoading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>

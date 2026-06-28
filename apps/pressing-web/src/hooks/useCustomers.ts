@@ -14,6 +14,17 @@ export const useCustomers = (tenantId: string) => {
   });
 };
 
+export const useCustomerById = (tenantId: string, id: string) => {
+  return useQuery({
+    queryKey: [CUSTOMERS_KEY, tenantId, id],
+    queryFn: async () => {
+      const { data } = await api.get(`/customers/${id}?tenantId=${tenantId}`);
+      return data;
+    },
+    enabled: !!tenantId && !!id,
+  });
+};
+
 export const useSearchCustomers = (tenantId: string, query: string) => {
   return useQuery({
     queryKey: [CUSTOMERS_KEY, 'search', tenantId, query],

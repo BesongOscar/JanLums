@@ -1,361 +1,446 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../components/ui/Toast';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 
-interface OrderItem {
-  id: string;
-  garmentType: string;
-  service: string;
-  quantity: number;
-  unitPrice: number;
-  specialInstructions?: string;
-}
-
-const services = [
-  { name: 'Wash \u0026 Fold', price: 500 },
+const serviceOptions = [
+  { name: 'Wash & Fold', price: 500 },
   { name: 'Dry Cleaning', price: 1500 },
   { name: 'Ironing / Pressing', price: 300 },
   { name: 'Stain Removal', price: 1000 },
 ];
 
+const garmentOptions = ['Shirt', 'Trouser', 'Suit', 'Dress', 'Jacket', 'Blouse', 'Skirt', ' coat', 'Uniform', 'Other'];
+
+const orderSchema = z.object({
+  customerName: z.string().min(1, 'Customer name is required'),
+  customerPhone: z.string().min(1, 'Phone number is required'),
+  customerEmail: z.string().email('Invalid email').optional().or(z.literal('')),
+  branch: z.string().min(1, 'Branch is required'),
+  items: z.array(z.object({
+    garmentType: z.string().min(1, 'Garment type is required'),
+    service: z.string().min(1, 'Service is required'),
+    quantity: z.coerce.number().min(1, 'Min 1'),
+    unitPrice: z.coerce.number().min(0),
+  })).min(1, 'Add at least one item'),
+  isExpress: z.boolean().optional(),
+  notes: z.string().optional(),
+  deliveryMethod: z.string().min(1, 'Select delivery method'),
+  paymentMethod: z.string().min(1, 'Select payment method'),
+});
+
+type OrderFormData = z.infer<typeof orderSchema>;
+
+const defaultItem = { garmentType: '', service: '', quantity: 1, unitPrice: 0 };
+
 export default function CreateOrder() {
   const navigate = useNavigate();
-  const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [items, setItems] = useState<OrderItem[]>([]);
-  const [notes, setNotes] = useState('');
-  const [isExpress, setIsExpress] = useState(false);
+  const { showToast } = useToast();
+  const [step, setStep] = useState(1);
+  const [customerSearch, setCustomerSearch] = useState('');
 
-  const addItem = () => {
-    setItems([...items, {
-      id: Math.random().toString(36).substr(2, 9),
-      garmentType: '',
-      service: '',
-      quantity: 1,
-      unitPrice: 0,
-    }]);
+  const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm<OrderFormData>({
+    resolver: zodResolver(orderSchema),
+    defaultValues: {
+      customerName: '',
+      customerPhone: '',
+      customerEmail: '',
+      branch: 'Yaounde Main',
+      items: [{ ...defaultItem }],
+      isExpress: false,
+      notes: '',
+      deliveryMethod: 'pickup',
+      paymentMethod: 'cash',
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({ control, name: 'items' });
+  const items = watch('items');
+  const isExpress = watch('isExpress');
+
+  const calculateItemPrice = (service: string): number => {
+    const svc = serviceOptions.find(s => s.name === service);
+    const base = svc?.price || 0;
+    return isExpress ? base * 2 : base;
   };
 
-  const removeItem = (id: string) => {
-    setItems(items.filter(item => item.id !== id));
-  };
+  const total = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
 
-  const updateItem = (id: string, updates: Partial<OrderItem>) => {
-    setItems(items.map(item => {
-      if (item.id === id) {
-        const updated = { ...item, ...updates };
-        if (updates.service) {
-          const service = services.find(s => s.name === updates.service);
-          if (service) {
-            updated.unitPrice = isExpress ? service.price * 2 : service.price;
-          }
-        }
-        return updated;
-      }
-      return item;
-    }));
-  };
+  const totalItems = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
 
-  const calculateTotal = () => {
-    return items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert('Order created successfully!');
+  const onSubmit = (data: OrderFormData) => {
+    showToast(`Order created for ${data.customerName} — ${total.toLocaleString()} FCFA`, 'success');
     navigate('/orders');
+  };
+
+  const totalSteps = 4;
+
+  const canProceed = () => {
+    if (step === 1) return watch('customerName') && watch('customerPhone');
+    if (step === 2) return items.length > 0 && items.every(i => i.garmentType && i.service);
+    if (step === 3) return watch('deliveryMethod') && watch('paymentMethod');
+    return true;
   };
 
   return (
     <div>
-      {/* Page Chrome */}
-      <div style={{
-        backgroundColor: '#F7F7F7',
-        border: '1px solid #dee2e6',
-        borderRadius: '4px 4px 0 0',
-        padding: '16px 24px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-      }}>
-        <h1 style={{ color: '#0ED145', fontSize: '24px', fontWeight: 'bold', margin: 0 }}>
-          Create New Order
-        </h1>
+      <div className="page-chrome">
+        <h1 className="page-title">Create New Order</h1>
         <button
           onClick={() => navigate('/orders')}
-          style={{
-            padding: '8px 16px',
-            border: '1px solid #ced4da',
-            borderRadius: '3px',
-            backgroundColor: 'white',
-            cursor: 'pointer',
-            fontSize: '14px',
-          }}
+          className="px-4 py-2 border border-neutral-300 rounded bg-white cursor-pointer text-sm hover:bg-neutral-50"
         >
           Cancel
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} style={{ marginTop: '24px' }}>
-        {/* Customer Information */}
-        <div style={{
-          backgroundColor: 'white',
-          border: '1px solid #dee2e6',
-          borderRadius: '4px',
-          padding: '24px',
-          marginBottom: '24px',
-        }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#111827' }}>Customer Information</h2>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '6px', color: '#374151' }}>Customer Name *</label>
+      <div className="flex items-center gap-3 px-6 py-4 bg-neutral-50 border-b border-neutral-200">
+        {['Customer', 'Items & Services', 'Delivery & Payment', 'Review'].map((label, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+              i + 1 === step ? 'bg-primary text-white' :
+              i + 1 < step ? 'bg-success text-white' :
+              'bg-neutral-200 text-neutral-500'
+            }`}>
+              {i + 1 < step ? '\u2713' : i + 1}
+            </div>
+            <span className={`text-sm ${i + 1 === step ? 'font-semibold text-primary' : 'text-neutral-500'}`}>
+              {label}
+            </span>
+            {i < totalSteps - 1 && <div className="w-6 h-px bg-neutral-300" />}
+          </div>
+        ))}
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-6">
+        {step === 1 && (
+          <div className="bg-white border border-neutral-200 rounded p-6 shadow-sm">
+            <h2 className="text-lg font-bold text-neutral-800 mb-5">Customer Information</h2>
+
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-neutral-600 mb-2">Search existing customer</label>
               <input
                 type="text"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Enter customer name"
-                required
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #ced4da',
-                  borderRadius: '3px',
-                  fontSize: '14px',
-                }}
+                value={customerSearch}
+                onChange={(e) => setCustomerSearch(e.target.value)}
+                placeholder="Type name or phone..."
+                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm"
               />
+              {customerSearch && (
+                <div className="mt-2 border border-neutral-200 rounded bg-white shadow-sm">
+                  <div className="px-4 py-3 cursor-pointer hover:bg-primary-50 border-b border-neutral-100">
+                    <div className="text-sm font-medium">Jean Dupont</div>
+                    <div className="text-xs text-neutral-500">+237 612 345 678</div>
+                  </div>
+                  <div className="px-4 py-3 cursor-pointer hover:bg-primary-50">
+                    <div className="text-sm font-medium">Marie Claire</div>
+                    <div className="text-xs text-neutral-500">+237 623 456 789</div>
+                  </div>
+                </div>
+              )}
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '6px', color: '#374151' }}>Phone Number *</label>
-              <input
-                type="tel"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="+237 6XX XXX XXX"
-                required
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #ced4da',
-                  borderRadius: '3px',
-                  fontSize: '14px',
-                }}
-              />
+
+            <div className="text-sm text-neutral-400 mb-4">Or add a new customer:</div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1.5">Customer Name *</label>
+                <input
+                  {...register('customerName')}
+                  placeholder="Enter customer name"
+                  className={`w-full px-3 py-2 border rounded text-sm ${errors.customerName ? 'border-danger' : 'border-neutral-300'}`}
+                />
+                {errors.customerName && <p className="text-xs text-danger mt-1">{errors.customerName.message}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1.5">Phone Number *</label>
+                <input
+                  {...register('customerPhone')}
+                  placeholder="+237 6XX XXX XXX"
+                  className={`w-full px-3 py-2 border rounded text-sm ${errors.customerPhone ? 'border-danger' : 'border-neutral-300'}`}
+                />
+                {errors.customerPhone && <p className="text-xs text-danger mt-1">{errors.customerPhone.message}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1.5">Email</label>
+                <input
+                  {...register('customerEmail')}
+                  placeholder="email@example.com"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1.5">Branch</label>
+                <select
+                  {...register('branch')}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm"
+                >
+                  <option>Yaounde Main</option>
+                  <option>Douala Central</option>
+                  <option>Buea Town</option>
+                </select>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Order Items */}
-        <div style={{
-          backgroundColor: 'white',
-          border: '1px solid #dee2e6',
-          borderRadius: '4px',
-          padding: '24px',
-          marginBottom: '24px',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#111827' }}>Order Items</h2>
-            <button
-              type="button"
-              onClick={addItem}
-              style={{
-                backgroundColor: '#0000EE',
-                color: 'white',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '3px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 'bold',
-              }}
-            >
-              + Add Item
-            </button>
-          </div>
-
-          {items.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
-              No items added. Click "Add Item" to get started.
+        {step === 2 && (
+          <div className="bg-white border border-neutral-200 rounded p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-neutral-800">Items & Services</h2>
+              <button
+                type="button"
+                onClick={() => append({ ...defaultItem })}
+                className="bg-primary text-white px-4 py-2 rounded text-sm font-bold border-none cursor-pointer hover:bg-primary-dark"
+              >
+                + Add Item
+              </button>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {items.map((item) => (
-                <div key={item.id} style={{
-                  border: '1px solid #dee2e6',
-                  borderRadius: '4px',
-                  padding: '16px',
-                  backgroundColor: '#F8F9FA',
-                }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr auto', gap: '12px', alignItems: 'end' }}>
+
+            {errors.items && <p className="text-xs text-danger mb-3">{errors.items.message || errors.items.root?.message}</p>}
+
+            <div className="space-y-4">
+              {fields.map((_, index) => (
+                <div key={index} className="border border-neutral-200 rounded p-4 bg-neutral-50">
+                  <div className="grid grid-cols-5 gap-3 items-end">
                     <div>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px', color: '#6b7280' }}>Service</label>
+                      <label className="block text-xs font-medium text-neutral-500 mb-1">Service</label>
                       <select
-                        value={item.service}
-                        onChange={(e) => updateItem(item.id, { service: e.target.value })}
-                        required
-                        style={{
-                          width: '100%',
-                          padding: '6px 10px',
-                          border: '1px solid #ced4da',
-                          borderRadius: '3px',
-                          fontSize: '14px',
+                        {...register(`items.${index}.service`)}
+                        onChange={(e) => {
+                          register(`items.${index}.service`).onChange(e);
+                          setValue(`items.${index}.unitPrice`, calculateItemPrice(e.target.value));
                         }}
+                        className={`w-full px-2 py-1.5 border rounded text-sm ${errors.items?.[index]?.service ? 'border-danger' : 'border-neutral-300'}`}
                       >
-                        <option value="">Select service...</option>
-                        {services.map((service) => (
-                          <option key={service.name} value={service.name}>
-                            {service.name} - {service.price} FCFA
-                          </option>
+                        <option value="">Select...</option>
+                        {serviceOptions.map(s => (
+                          <option key={s.name} value={s.name}>{s.name} — {s.price} FCFA</option>
                         ))}
                       </select>
+                      {errors.items?.[index]?.service && <p className="text-xs text-danger mt-1">{errors.items[index]?.service?.message}</p>}
                     </div>
-
                     <div>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px', color: '#6b7280' }}>Garment</label>
-                      <input
-                        type="text"
-                        value={item.garmentType}
-                        onChange={(e) => updateItem(item.id, { garmentType: e.target.value })}
-                        placeholder="e.g., Shirt"
-                        required
-                        style={{
-                          width: '100%',
-                          padding: '6px 10px',
-                          border: '1px solid #ced4da',
-                          borderRadius: '3px',
-                          fontSize: '14px',
-                        }}
-                      />
+                      <label className="block text-xs font-medium text-neutral-500 mb-1">Garment</label>
+                      <select
+                        {...register(`items.${index}.garmentType`)}
+                        className={`w-full px-2 py-1.5 border rounded text-sm ${errors.items?.[index]?.garmentType ? 'border-danger' : 'border-neutral-300'}`}
+                      >
+                        <option value="">Select...</option>
+                        {garmentOptions.map(g => <option key={g} value={g}>{g}</option>)}
+                      </select>
+                      {errors.items?.[index]?.garmentType && <p className="text-xs text-danger mt-1">{errors.items[index]?.garmentType?.message}</p>}
                     </div>
-
                     <div>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px', color: '#6b7280' }}>Qty</label>
+                      <label className="block text-xs font-medium text-neutral-500 mb-1">Qty</label>
                       <input
                         type="number"
-                        value={item.quantity}
-                        onChange={(e) => updateItem(item.id, { quantity: parseInt(e.target.value) || 1 })}
-                        min="1"
-                        style={{
-                          width: '100%',
-                          padding: '6px 10px',
-                          border: '1px solid #ced4da',
-                          borderRadius: '3px',
-                          fontSize: '14px',
-                        }}
+                        {...register(`items.${index}.quantity`)}
+                        min={1}
+                        className="w-full px-2 py-1.5 border border-neutral-300 rounded text-sm"
                       />
                     </div>
-
                     <div>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px', color: '#6b7280' }}>Price</label>
-                      <div style={{ fontWeight: 'bold', color: '#0000EE', fontSize: '16px' }}>
-                        {(item.quantity * item.unitPrice).toLocaleString()} FCFA
-                      </div>
+                      <label className="block text-xs font-medium text-neutral-500 mb-1">Price</label>
+                      <Controller
+                        control={control}
+                        name={`items.${index}.unitPrice`}
+                        render={() => (
+                          <div className="font-bold text-primary text-sm py-1.5">
+                            {(items[index]?.quantity || 0) * (items[index]?.unitPrice || 0)} FCFA
+                          </div>
+                        )}
+                      />
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => removeItem(item.id)}
-                      style={{
-                        padding: '6px 12px',
-                        color: '#DC3545',
-                        backgroundColor: 'white',
-                        border: '1px solid #DC3545',
-                        borderRadius: '3px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                      }}
-                    >
-                      Remove
-                    </button>
+                    <div>
+                      {fields.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => remove(index)}
+                          className="px-3 py-1.5 border border-danger rounded text-danger text-xs bg-white cursor-pointer hover:bg-danger-50"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-          )}
-        </div>
 
-        {/* Order Options */}
-        <div style={{
-          backgroundColor: 'white',
-          border: '1px solid #dee2e6',
-          borderRadius: '4px',
-          padding: '24px',
-          marginBottom: '24px',
-        }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#111827' }}>Order Options</h2>
-          
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={isExpress}
-                onChange={(e) => setIsExpress(e.target.checked)}
-                style={{ width: '16px', height: '16px' }}
+            <div className="mt-4 flex items-center">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  {...register('isExpress')}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm text-neutral-700">Express Service (2x price — same-day delivery)</span>
+              </label>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-neutral-200">
+              <label className="block text-sm font-medium text-neutral-700 mb-1.5">Notes</label>
+              <textarea
+                {...register('notes')}
+                rows={2}
+                placeholder="Any special instructions..."
+                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm resize-y"
               />
-              <span style={{ fontSize: '14px' }}>Express Service (2x price for same-day delivery)</span>
-            </label>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '6px', color: '#374151' }}>Notes</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              placeholder="Any special instructions..."
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid #ced4da',
-                borderRadius: '3px',
-                fontSize: '14px',
-                resize: 'vertical',
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Total and Submit */}
-        <div style={{
-          backgroundColor: 'white',
-          border: '1px solid #dee2e6',
-          borderRadius: '4px',
-          padding: '24px',
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '24px',
-            paddingBottom: '16px',
-            borderBottom: '1px solid #dee2e6',
-          }}>
-            <div>
-              <span style={{ color: '#6b7280', fontSize: '14px' }}>Total Items: {items.reduce((sum, item) => sum + item.quantity, 0)}</span>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ color: '#6b7280', fontSize: '14px' }}>Total Amount</div>
-              <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#0000EE' }}>{calculateTotal().toLocaleString()} FCFA</div>
             </div>
           </div>
+        )}
 
+        {step === 3 && (
+          <div className="bg-white border border-neutral-200 rounded p-6 shadow-sm">
+            <h2 className="text-lg font-bold text-neutral-800 mb-5">Delivery & Payment</h2>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Delivery Method</label>
+                <div className="space-y-3">
+                  {[
+                    { value: 'pickup', label: 'Customer Pickup', desc: 'Customer collects at branch' },
+                    { value: 'delivery', label: 'Home Delivery', desc: 'Deliver to customer address' },
+                  ].map((opt) => (
+                    <label key={opt.value} className={`flex items-start gap-3 p-3 border rounded cursor-pointer ${
+                      watch('deliveryMethod') === opt.value ? 'border-primary bg-primary-50' : 'border-neutral-200'
+                    }`}>
+                      <input
+                        type="radio"
+                        value={opt.value}
+                        {...register('deliveryMethod')}
+                        className="mt-0.5"
+                      />
+                      <div>
+                        <div className="text-sm font-medium text-neutral-800">{opt.label}</div>
+                        <div className="text-xs text-neutral-500">{opt.desc}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Payment Method</label>
+                <div className="space-y-3">
+                  {[
+                    { value: 'cash', label: 'Cash', desc: 'Pay at branch' },
+                    { value: 'mtn', label: 'MTN Mobile Money', desc: '+237 6XX XXX XXX' },
+                    { value: 'orange', label: 'Orange Money', desc: '+237 6XX XXX XXX' },
+                    { value: 'card', label: 'Card', desc: 'Credit / Debit card' },
+                  ].map((opt) => (
+                    <label key={opt.value} className={`flex items-start gap-3 p-3 border rounded cursor-pointer ${
+                      watch('paymentMethod') === opt.value ? 'border-primary bg-primary-50' : 'border-neutral-200'
+                    }`}>
+                      <input
+                        type="radio"
+                        value={opt.value}
+                        {...register('paymentMethod')}
+                        className="mt-0.5"
+                      />
+                      <div>
+                        <div className="text-sm font-medium text-neutral-800">{opt.label}</div>
+                        <div className="text-xs text-neutral-500">{opt.desc}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 4 && (
+          <div className="bg-white border border-neutral-200 rounded p-6 shadow-sm">
+            <h2 className="text-lg font-bold text-neutral-800 mb-5">Review Order</h2>
+
+            <div className="grid grid-cols-2 gap-6 mb-6">
+              <div>
+                <h3 className="text-sm font-bold text-neutral-700 mb-3">Customer</h3>
+                <div className="space-y-2 text-sm">
+                  <p><span className="text-neutral-500">Name:</span> {watch('customerName')}</p>
+                  <p><span className="text-neutral-500">Phone:</span> {watch('customerPhone')}</p>
+                  <p><span className="text-neutral-500">Email:</span> {watch('customerEmail') || '—'}</p>
+                  <p><span className="text-neutral-500">Branch:</span> {watch('branch')}</p>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-neutral-700 mb-3">Delivery & Payment</h3>
+                <div className="space-y-2 text-sm">
+                  <p><span className="text-neutral-500">Delivery:</span> {watch('deliveryMethod') === 'pickup' ? 'Customer Pickup' : 'Home Delivery'}</p>
+                  <p><span className="text-neutral-500">Payment:</span> {watch('paymentMethod') === 'cash' ? 'Cash' : watch('paymentMethod') === 'mtn' ? 'MTN Mobile Money' : watch('paymentMethod') === 'orange' ? 'Orange Money' : 'Card'}</p>
+                  <p><span className="text-neutral-500">Express:</span> {watch('isExpress') ? 'Yes' : 'No'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="border border-neutral-200 rounded overflow-hidden mb-6">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-neutral-50">
+                    <th className="px-4 py-2 text-left text-primary font-bold border-b border-neutral-200">Garment</th>
+                    <th className="px-4 py-2 text-left text-primary font-bold border-b border-neutral-200">Service</th>
+                    <th className="px-4 py-2 text-right text-primary font-bold border-b border-neutral-200">Qty</th>
+                    <th className="px-4 py-2 text-right text-primary font-bold border-b border-neutral-200">Price</th>
+                    <th className="px-4 py-2 text-right text-primary font-bold border-b border-neutral-200">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item, i) => (
+                    <tr key={i} className="border-b border-neutral-100">
+                      <td className="px-4 py-2">{item.garmentType}</td>
+                      <td className="px-4 py-2 text-neutral-600">{item.service}</td>
+                      <td className="px-4 py-2 text-right">{item.quantity}</td>
+                      <td className="px-4 py-2 text-right">{item.unitPrice.toLocaleString()} FCFA</td>
+                      <td className="px-4 py-2 text-right font-medium">{(item.quantity * item.unitPrice).toLocaleString()} FCFA</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-between items-center pt-4 border-t border-neutral-200">
+              <div className="text-sm text-neutral-500">Total Items: {totalItems}</div>
+              <div className="text-right">
+                <div className="text-sm text-neutral-500">Total Amount</div>
+                <div className="text-3xl font-bold text-primary">{total.toLocaleString()} FCFA</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between mt-6">
           <button
-            type="submit"
-            disabled={!customerName || !customerPhone || items.length === 0}
-            style={{
-              width: '100%',
-              padding: '14px',
-              backgroundColor: '#0000EE',
-              color: 'white',
-              border: 'none',
-              borderRadius: '3px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              opacity: (!customerName || !customerPhone || items.length === 0) ? 0.5 : 1,
-            }}
+            type="button"
+            onClick={() => setStep(Math.max(1, step - 1))}
+            disabled={step === 1}
+            className="px-6 py-2 text-sm font-medium text-neutral-600 bg-white border border-neutral-300 rounded hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Create Order
+            Back
           </button>
+
+          <div className="flex gap-3">
+            {step < totalSteps ? (
+              <button
+                type="button"
+                onClick={() => setStep(step + 1)}
+                disabled={!canProceed()}
+                className="px-6 py-2 text-sm font-bold text-white bg-primary rounded hover:bg-primary-dark disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            ) : (
+              <button
+                type="submit"
+                className="px-8 py-2 text-sm font-bold text-white bg-success rounded hover:bg-success-dark border-none cursor-pointer"
+              >
+                Create Order
+              </button>
+            )}
+          </div>
         </div>
       </form>
     </div>

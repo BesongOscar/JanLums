@@ -31,6 +31,17 @@ export const useOrderStats = (tenantId: string, branchId?: string) => {
   });
 };
 
+export const useOrderById = (tenantId: string, id: string) => {
+  return useQuery({
+    queryKey: [ORDERS_KEY, tenantId, id],
+    queryFn: async () => {
+      const { data } = await api.get(`/orders/${id}?tenantId=${tenantId}`);
+      return data;
+    },
+    enabled: !!tenantId && !!id,
+  });
+};
+
 export const useCreateOrder = () => {
   const queryClient = useQueryClient();
   return useMutation({
