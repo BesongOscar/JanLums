@@ -1,17 +1,24 @@
+import { useCallback } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, TextInput, Button, HelperText } from 'react-native-paper';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, RegisterFormData } from '../../src/features/auth/validation';
 import { useRegister } from '../../src/features/auth/hooks/useRegister';
+import { useAuthStore } from '../../src/stores/authStore';
 import { normalizeError } from '../../src/utils/errorHandler';
 import { useOfflineBlock } from '../../src/hooks/useOfflineBlock';
-import { CONFIG } from '../../src/config/environment';
 import { colors } from '../../src/config/colors';
 
+function goToBusinessCode(router: ReturnType<typeof useRouter>) {
+  router.replace('/(auth)/business-code' as any);
+}
+
 export default function RegisterScreen() {
+  const router = useRouter();
   const registerMutation = useRegister();
+  const { tenant } = useAuthStore();
   const { blockIfOffline } = useOfflineBlock();
 
   const {
@@ -22,17 +29,24 @@ export default function RegisterScreen() {
     resolver: zodResolver(registerSchema),
   });
 
-  const onSubmit = (data: RegisterFormData) => {
-    if (blockIfOffline('create an account')) return;
-    registerMutation.mutate({
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      phone: data.phone,
-      password: data.password,
-      tenantId: CONFIG.tenantId,
-    });
-  };
+  const onSubmit = useCallback(
+    (data: RegisterFormData) => {
+      if (blockIfOffline('create an account')) return;
+      if (!tenant?.slug) {
+        goToBusinessCode(router);
+        return;
+      }
+      registerMutation.mutate({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+        password: data.password,
+        tenantSlug: tenant.slug,
+      });
+    },
+    [registerMutation, blockIfOffline, tenant, router]
+  );
 
   const errorMessage = registerMutation.error
     ? normalizeError(registerMutation.error).message

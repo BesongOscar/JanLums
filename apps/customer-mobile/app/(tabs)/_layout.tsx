@@ -4,10 +4,68 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useUnreadNotificationCount } from '../../src/hooks/useNotifications';
 import { colors } from '../../src/config/colors';
 
-export default function TabsLayout() {
+/**
+ * NotificationTabIcon
+ *
+ * Isolated component that owns the `useUnreadNotificationCount` hook.
+ * Keeping the hook here (rather than in TabsLayout) ensures it only
+ * executes after the QueryClientProvider tree is fully mounted.
+ * If the query hasn't resolved yet, the badge simply doesn't render.
+ */
+function NotificationTabIcon({ color, size }: { color: string; size: number }) {
   const { data: unreadData } = useUnreadNotificationCount();
   const unreadCount = unreadData?.count ?? 0;
 
+  return (
+    <View
+      style={{
+        width: size + 4,
+        height: size + 4,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <MaterialCommunityIcons
+        name={unreadCount > 0 ? 'bell' : 'bell-outline'}
+        size={size}
+        color={color}
+      />
+      {unreadCount > 0 && (
+        <View
+          style={{
+            position: 'absolute',
+            top: -4,
+            right: -6,
+            backgroundColor: colors.error.DEFAULT,
+            borderRadius: 8,
+            minWidth: 16,
+            height: 16,
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 4,
+          }}
+        >
+          <Text
+            style={{ color: colors.white, fontSize: 10, fontWeight: '700' }}
+          >
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+/**
+ * TabsLayout
+ *
+ * Root tab navigator. Intentionally contains no hooks of its own —
+ * tab layouts are instantiated early in the Expo Router render cycle,
+ * sometimes before context providers (QueryClient, etc.) have finished
+ * mounting. Any hook that depends on a provider must live in a child
+ * component (see NotificationTabIcon above).
+ */
+export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
@@ -41,7 +99,11 @@ export default function TabsLayout() {
         options={{
           title: 'Orders',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="clipboard-list" size={size} color={color} />
+            <MaterialCommunityIcons
+              name="clipboard-list"
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -50,7 +112,11 @@ export default function TabsLayout() {
         options={{
           title: 'Track',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="map-marker-path" size={size} color={color} />
+            <MaterialCommunityIcons
+              name="map-marker-path"
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -59,33 +125,7 @@ export default function TabsLayout() {
         options={{
           title: 'Notifications',
           tabBarIcon: ({ color, size }) => (
-            <View style={{ width: size + 4, height: size + 4, alignItems: 'center', justifyContent: 'center' }}>
-              <MaterialCommunityIcons
-                name={unreadCount > 0 ? 'bell' : 'bell-outline'}
-                size={size}
-                color={color}
-              />
-              {unreadCount > 0 && (
-                <View
-                  style={{
-                    position: 'absolute',
-                    top: -4,
-                    right: -6,
-                    backgroundColor: colors.error.DEFAULT,
-                    borderRadius: 8,
-                    minWidth: 16,
-                    height: 16,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    paddingHorizontal: 4,
-                  }}
-                >
-                  <Text style={{ color: colors.white, fontSize: 10, fontWeight: '700' }}>
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </Text>
-                </View>
-              )}
-            </View>
+            <NotificationTabIcon color={color} size={size} />
           ),
         }}
       />

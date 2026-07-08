@@ -27,6 +27,10 @@ export class CreateOrderDto {
   @IsBoolean()
   isExpress?: boolean;
 
+  @IsOptional()
+  @IsString()
+  addressId?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateOrderItemDto)

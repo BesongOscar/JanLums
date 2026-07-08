@@ -6,11 +6,12 @@ import { NotificationResponseDto } from './dto/notification-response.dto';
 import { UnreadCountResponseDto } from './dto/unread-count-response.dto';
 import { CustomersService } from '../customers/customers.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CustomerOrAdminGuard } from '../auth/guards/customer-or-admin.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('notifications')
 @ApiBearerAuth('JWT')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, CustomerOrAdminGuard)
 @Controller('notifications')
 export class NotificationsController {
   constructor(

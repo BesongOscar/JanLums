@@ -164,8 +164,8 @@ describe('NotificationsScreen', () => {
     });
   });
 
-  describe('deep linking', () => {
-    it('navigates to order detail when notification has orderId', () => {
+  describe('navigation', () => {
+    it('navigates to detail screen on press', () => {
       const notifications = [
         createNotification({
           id: 'notif-1',
@@ -183,26 +183,10 @@ describe('NotificationsScreen', () => {
 
       const cardLabel = screen.getByLabelText(/^Unread notification: Test Notification/);
       fireEvent.press(cardLabel);
-      expect(mockPush).toHaveBeenCalledWith('/orders/order-123');
+      expect(mockPush).toHaveBeenCalledWith('/(tabs)/notifications/notif-1');
     });
 
-    it('does not navigate when notification has no orderId', () => {
-      const notifications = [createNotification({ id: 'notif-1', metadata: null })];
-      mockUseNotifications.mockReturnValue({
-        data: notifications,
-        isLoading: false,
-        isError: false,
-        refetch: jest.fn(),
-        isRefetching: false,
-      });
-      renderScreen();
-
-      const cardLabel = screen.getByLabelText(/^Unread notification: Test Notification/);
-      fireEvent.press(cardLabel);
-      expect(mockPush).not.toHaveBeenCalled();
-    });
-
-    it('marks notification as read on press', () => {
+    it('does not mark as read or track from list (handled in detail screen)', () => {
       const notifications = [
         createNotification({ id: 'notif-1', isRead: false, metadata: null }),
       ];
@@ -217,49 +201,8 @@ describe('NotificationsScreen', () => {
 
       const cardLabel = screen.getByLabelText(/^Unread notification: Test Notification/);
       fireEvent.press(cardLabel);
-      expect(mockMarkReadMutate).toHaveBeenCalledWith('notif-1');
-    });
-
-    it('does not mark as read for already read notifications', () => {
-      const notifications = [
-        createNotification({ id: 'notif-1', isRead: true, metadata: null }),
-      ];
-      mockUseNotifications.mockReturnValue({
-        data: notifications,
-        isLoading: false,
-        isError: false,
-        refetch: jest.fn(),
-        isRefetching: false,
-      });
-      renderScreen();
-
-      const cardButton = screen
-        .getAllByRole('button')
-        .find((b) => b.props.accessibilityLabel?.startsWith(' ') && b.props.accessibilityLabel?.includes('Test Notification'));
-      expect(cardButton).toBeTruthy();
-      fireEvent.press(cardButton!);
       expect(mockMarkReadMutate).not.toHaveBeenCalled();
-    });
-
-    it('tracks notification_opened event on press', () => {
-      const notifications = [
-        createNotification({ id: 'notif-1', type: 'order_created' }),
-      ];
-      mockUseNotifications.mockReturnValue({
-        data: notifications,
-        isLoading: false,
-        isError: false,
-        refetch: jest.fn(),
-        isRefetching: false,
-      });
-      renderScreen();
-
-      const cardLabel = screen.getByLabelText(/^Unread notification: Test Notification/);
-      fireEvent.press(cardLabel);
-      expect(mockTrack).toHaveBeenCalledWith({
-        name: 'notification_opened',
-        properties: { id: 'notif-1', type: 'order_created' },
-      });
+      expect(mockTrack).toHaveBeenCalledWith({ name: 'notifications_screen_viewed' });
     });
   });
 

@@ -3,6 +3,7 @@ import { AuthUser } from '../../../types';
 export interface LoginCredentials {
   email: string;
   password: string;
+  tenantSlug: string;
 }
 
 export interface RegisterData {
@@ -11,7 +12,7 @@ export interface RegisterData {
   email: string;
   phone: string;
   password: string;
-  tenantId: string;
+  tenantSlug: string;
 }
 
 export interface AuthResponse {

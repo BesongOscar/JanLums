@@ -1,6 +1,7 @@
 import api from '../../../api/client';
 import { API_ENDPOINTS } from '../../../api/endpoints';
 import { LoginCredentials, RegisterData, AuthResponse } from '../types';
+import { TenantInfo } from '../../../types';
 
 export const authService = {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
@@ -19,5 +20,10 @@ export const authService = {
     } catch {
       // Server-side logout is best-effort
     }
+  },
+
+  async validateTenant(slug: string): Promise<TenantInfo> {
+    const response = await api.get(API_ENDPOINTS.TENANTS.VALIDATE_BY_SLUG(slug));
+    return response.data;
   },
 };

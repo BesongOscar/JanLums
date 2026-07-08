@@ -25,6 +25,24 @@ export default function AccountLayout() {
         }}
       />
       <Stack.Screen
+        name="addresses"
+        options={{
+          title: 'Saved Addresses',
+        }}
+      />
+      <Stack.Screen
+        name="loyalty"
+        options={{
+          title: 'Loyalty & Rewards',
+        }}
+      />
+      <Stack.Screen
+        name="sync-queue"
+        options={{
+          title: 'Pending Sync',
+        }}
+      />
+      <Stack.Screen
         name="settings"
         options={{
           title: 'Settings',

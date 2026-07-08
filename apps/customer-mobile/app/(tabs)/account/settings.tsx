@@ -3,6 +3,7 @@ import { ScrollView, Alert, StyleSheet } from 'react-native';
 import { List, Divider } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../src/stores/authStore';
+import { useSyncQueueStore } from '../../../src/stores/syncQueueStore';
 import { useAnalytics } from '../../../src/hooks/useAnalytics';
 import { colors } from '../../../src/config/colors';
 import { spacing } from '../../../src/config/spacing';
@@ -12,6 +13,9 @@ export default function SettingsScreen() {
   const router = useRouter();
   const analytics = useAnalytics();
   const logout = useAuthStore((state) => state.logout);
+  const pendingCount = useSyncQueueStore((s) => s.getCount('pending'));
+  const failedCount = useSyncQueueStore((s) => s.getCount('failed'));
+  const totalPending = pendingCount + failedCount;
 
   useEffect(() => {
     analytics.track({ name: 'settings_viewed' });
@@ -48,6 +52,18 @@ export default function SettingsScreen() {
           titleStyle={styles.listTitle}
           descriptionStyle={styles.listDescription}
           accessibilityLabel="View and edit your profile"
+        />
+        <Divider style={styles.divider} />
+        <Divider style={styles.divider} />
+        <List.Item
+          title={`Sync Queue${totalPending > 0 ? ` (${totalPending})` : ''}`}
+          description={totalPending > 0 ? 'Orders waiting to be submitted' : 'View synced orders'}
+          left={(props) => <List.Icon {...props} icon="sync" color={totalPending > 0 ? colors.warning.DEFAULT : colors.primary[500]} />}
+          right={(props) => <List.Icon {...props} icon="chevron-right" />}
+          onPress={() => router.push('./sync-queue')}
+          titleStyle={styles.listTitle}
+          descriptionStyle={styles.listDescription}
+          accessibilityLabel={`Sync queue${totalPending > 0 ? `, ${totalPending} items` : ''}`}
         />
         <Divider style={styles.divider} />
         <List.Item

@@ -1,25 +1,19 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import {
   View,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
-import { Text, Card, Button, Dialog, Portal } from 'react-native-paper';
+import { Text, Card, Button } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useAnalytics } from '../../src/hooks/useAnalytics';
-import { useOfflineBlock } from '../../src/hooks/useOfflineBlock';
 import { useOrderDraftStore } from '../../src/stores/orderDraftStore';
-import { useCustomerProfile } from '../../src/hooks/useCustomerProfile';
-import { useAuthStore } from '../../src/stores/authStore';
-import { useCreateOrder } from '../../src/hooks/useCreateOrder';
-import { normalizeError } from '../../src/utils/errorHandler';
+import { formatCurrency } from '../../src/utils/format';
 import { colors } from '../../src/config/colors';
 import { spacing, borderRadius } from '../../src/config/spacing';
 import { typography } from '../../src/config/typography';
-import { formatCurrency } from '../../src/utils/format';
 
 function EmptyDraft() {
   const router = useRouter();
@@ -44,25 +38,15 @@ function EmptyDraft() {
 export default function ReviewScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const analytics = useAnalytics();
-  const { blockIfOffline } = useOfflineBlock();
 
   const selectedServices = useOrderDraftStore((s) => s.selectedServices);
   const branchId = useOrderDraftStore((s) => s.branchId);
   const branchName = useOrderDraftStore((s) => s.branchName);
   const notes = useOrderDraftStore((s) => s.notes);
+  const addressId = useOrderDraftStore((s) => s.addressId);
+  const addressLabel = useOrderDraftStore((s) => s.addressLabel);
   const removeService = useOrderDraftStore((s) => s.removeService);
   const updateServiceQuantity = useOrderDraftStore((s) => s.updateServiceQuantity);
-  const reset = useOrderDraftStore((s) => s.reset);
-  const toOrderPayload = useOrderDraftStore((s) => s.toOrderPayload);
-
-  const { data: profile } = useCustomerProfile();
-  const tenantId = useAuthStore((s) => s.tenantId);
-  const customerId = profile?.id;
-
-  const { mutate: createOrder, isPending: isSubmitting } = useCreateOrder();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showConfirm, setShowConfirm] = useState(false);
 
   const estimatedSubtotal = useOrderDraftStore((s) => s.getEstimatedSubtotal());
   const itemCount = useOrderDraftStore((s) => s.getItemCount());
@@ -88,43 +72,14 @@ export default function ReviewScreen() {
     router.push('/order/branch' as any);
   }, [router]);
 
-  const handleSubmit = useCallback(() => {
-    if (!tenantId || !customerId) {
-      setErrorMessage('Unable to verify your account. Please try logging in again.');
-      return;
-    }
-    setShowConfirm(true);
-  }, [tenantId, customerId]);
+  const handleSelectAddress = useCallback(() => {
+    router.push('/order/address' as any);
+  }, [router]);
 
-  const handleConfirmSubmit = useCallback(() => {
-    setShowConfirm(false);
-
-    if (blockIfOffline('submit your order')) return;
-
-    if (!tenantId || !customerId) {
-      setErrorMessage('Unable to verify your account');
-      return;
-    }
-
-    analytics.track({ name: 'order_submission_started' });
-
-    const payload = toOrderPayload();
-
-    createOrder(payload, {
-      onSuccess: (order) => {
-        analytics.track({
-          name: 'order_submission_completed',
-          properties: { orderId: order.id },
-        });
-        reset();
-        router.replace(`/order/success?id=${order.id}` as any);
-      },
-      onError: (err) => {
-        const normalized = normalizeError(err);
-        setErrorMessage(normalized.message);
-      },
-    });
-  }, [tenantId, customerId, toOrderPayload, createOrder, analytics, reset, router, blockIfOffline]);
+  const handleProceedToPayment = useCallback(() => {
+    if (!isDraftValid) return;
+    router.push('/order/payment' as any);
+  }, [isDraftValid, router]);
 
   if (selectedServices.length === 0) {
     return (
@@ -210,6 +165,32 @@ export default function ReviewScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
+                <TouchableOpacity
+                  style={styles.garmentRow}
+                  onPress={() => router.push(`/order/garments?index=${index}` as any)}
+                  activeOpacity={0.7}
+                  accessibilityLabel={
+                    item.garments && item.garments.length > 0
+                      ? `${item.garments.length} garments specified for ${item.serviceName}. Tap to edit.`
+                      : `Add garment details for ${item.serviceName}`
+                  }
+                  accessibilityRole="button"
+                >
+                  <MaterialCommunityIcons
+                    name="hanger"
+                    size={18}
+                    color={item.garments && item.garments.length > 0 ? colors.primary[500] : colors.text.tertiary}
+                  />
+                  <Text style={[
+                    styles.garmentRowText,
+                    item.garments && item.garments.length > 0 && styles.garmentRowTextFilled,
+                  ]}>
+                    {item.garments && item.garments.length > 0
+                      ? `${item.garments.length} garment${item.garments.length !== 1 ? 's' : ''} specified`
+                      : 'Add garment details'}
+                  </Text>
+                  <MaterialCommunityIcons name="chevron-right" size={18} color={colors.text.tertiary} />
+                </TouchableOpacity>
                 {index < selectedServices.length - 1 && <View style={styles.divider} />}
               </View>
             ))}
@@ -231,6 +212,27 @@ export default function ReviewScreen() {
               <TouchableOpacity onPress={handleSelectBranch} style={styles.selectBranchRow} activeOpacity={0.7}>
                 <MaterialCommunityIcons name="store-outline" size={20} color={colors.primary[500]} />
                 <Text style={styles.selectBranchText}>Select a branch</Text>
+                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.text.tertiary} />
+              </TouchableOpacity>
+            )}
+          </Card.Content>
+        </Card>
+
+        <Card style={styles.sectionCard}>
+          <Card.Content>
+            <Text style={styles.sectionTitle}>Delivery Address</Text>
+            {addressId && addressLabel ? (
+              <TouchableOpacity onPress={handleSelectAddress} style={styles.branchRow} activeOpacity={0.7}>
+                <MaterialCommunityIcons name="map-marker" size={20} color={colors.primary[500]} />
+                <View style={styles.branchInfo}>
+                  <Text style={styles.branchName}>{addressLabel}</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.text.tertiary} />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={handleSelectAddress} style={styles.selectBranchRow} activeOpacity={0.7}>
+                <MaterialCommunityIcons name="map-marker-outline" size={20} color={colors.primary[500]} />
+                <Text style={styles.selectBranchText}>Select delivery address</Text>
                 <MaterialCommunityIcons name="chevron-right" size={20} color={colors.text.tertiary} />
               </TouchableOpacity>
             )}
@@ -259,41 +261,8 @@ export default function ReviewScreen() {
           </Card.Content>
         </Card>
 
-        {errorMessage && (
-          <Card style={styles.errorCard}>
-            <Card.Content style={styles.errorContent}>
-              <MaterialCommunityIcons name="alert-circle" size={18} color={colors.error.DEFAULT} />
-              <Text style={styles.errorText}>{errorMessage}</Text>
-            </Card.Content>
-          </Card>
-        )}
-
         <View style={{ height: spacing[8] }} />
       </ScrollView>
-
-      <Portal>
-        <Dialog visible={showConfirm} onDismiss={() => setShowConfirm(false)}>
-          <Dialog.Title accessibilityRole="header">Submit Order</Dialog.Title>
-          <Dialog.Content>
-            <Text style={styles.dialogText}>
-              You are about to submit your order with {itemCount} item{itemCount !== 1 ? 's' : ''} for{' '}
-              {formatCurrency(estimatedSubtotal)} at {branchName || 'selected branch'}.
-            </Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setShowConfirm(false)} accessibilityLabel="Cancel order submission">Cancel</Button>
-            <Button
-              onPress={handleConfirmSubmit}
-              loading={isSubmitting}
-              disabled={isSubmitting}
-              accessibilityLabel="Confirm order submission"
-              accessibilityState={{ disabled: isSubmitting }}
-            >
-              Confirm
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
 
       <View style={styles.bottomBar}>
         <Button
@@ -301,21 +270,21 @@ export default function ReviewScreen() {
           onPress={handleSelectBranch}
           style={styles.branchButton}
           contentStyle={styles.branchButtonContent}
-          accessibilityLabel={branchId ? 'Change branch' : 'Select branch'}
+          icon="store"
         >
-          {branchId ? 'Change Branch' : 'Select Branch'}
+          Change Branch
         </Button>
         <Button
           mode="contained"
-          onPress={handleSubmit}
-          disabled={!isDraftValid || isSubmitting}
-          loading={isSubmitting}
+          onPress={handleProceedToPayment}
           style={styles.submitButton}
           contentStyle={styles.submitButtonContent}
-          accessibilityLabel="Submit order"
-          accessibilityState={{ disabled: !isDraftValid || isSubmitting }}
+          disabled={!isDraftValid}
+          icon="credit-card"
+          accessibilityLabel="Proceed to payment"
+          accessibilityState={{ disabled: !isDraftValid }}
         >
-          Submit Order
+          Proceed to Payment
         </Button>
       </View>
     </View>
@@ -488,27 +457,6 @@ const styles = StyleSheet.create({
     marginTop: spacing[2],
     fontStyle: 'italic',
   },
-  errorCard: {
-    backgroundColor: colors.error.light,
-    marginHorizontal: spacing[4],
-    marginBottom: spacing[3],
-    borderRadius: borderRadius.lg,
-  },
-  errorContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  errorText: {
-    ...typography['body-sm'],
-    color: colors.error.DEFAULT,
-    flex: 1,
-  },
-  dialogText: {
-    ...typography.body,
-    color: colors.text.secondary,
-    lineHeight: 22,
-  },
   bottomBar: {
     flexDirection: 'row',
     padding: spacing[4],
@@ -530,6 +478,25 @@ const styles = StyleSheet.create({
   },
   submitButtonContent: {
     paddingVertical: spacing[1],
+  },
+  garmentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[1],
+    gap: spacing[2],
+    backgroundColor: colors.gray[50],
+    borderRadius: borderRadius.md,
+    marginTop: spacing[1],
+  },
+  garmentRowText: {
+    ...typography['body-sm'],
+    color: colors.text.tertiary,
+    flex: 1,
+  },
+  garmentRowTextFilled: {
+    color: colors.primary[600],
+    fontWeight: '500',
   },
   emptyContainer: {
     flex: 1,

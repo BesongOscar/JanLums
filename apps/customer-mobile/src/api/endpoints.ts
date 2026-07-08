@@ -36,6 +36,16 @@ export const API_ENDPOINTS = {
     PARSE: (code: string) => `/qr-code/parse/${code}`,
     SHORT_CODE: '/qr-code/short-code',
   },
+  ADDRESSES: {
+    BASE: '/addresses',
+    BY_ID: (id: string) => `/addresses/${id}`,
+  },
+  LOYALTY: {
+    ME: '/customers/me/loyalty',
+  },
+  TENANTS: {
+    VALIDATE_BY_SLUG: (slug: string) => `/public/tenants/${slug}`,
+  },
   NOTIFICATIONS: {
     ME: '/notifications/me',
     UNREAD_COUNT: '/notifications/me/unread-count',

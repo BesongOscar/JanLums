@@ -6,6 +6,7 @@ import { Service } from '../services/entities/service.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../notifications/entities/notification.entity';
+import { AddressesService } from '../addresses/addresses.service';
 
 @Injectable()
 export class OrdersService {
@@ -16,6 +17,7 @@ export class OrdersService {
     private readonly orderItemRepository: Repository<OrderItem>,
     private readonly dataSource: DataSource,
     private readonly notificationsService: NotificationsService,
+    private readonly addressesService: AddressesService,
   ) {}
 
   async findAll(tenantId: string, branchId?: string): Promise<Order[]> {
@@ -25,7 +27,7 @@ export class OrdersService {
     }
     return this.orderRepository.find({
       where,
-      relations: ['items', 'staff'],
+      relations: ['items', 'staff', 'customer'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -33,7 +35,7 @@ export class OrdersService {
   async findByCustomerId(customerId: string, tenantId: string): Promise<Order[]> {
     return this.orderRepository.find({
       where: { customerId, tenantId },
-      relations: ['items', 'staff', 'branch'],
+      relations: ['items', 'staff', 'branch', 'customer'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -41,7 +43,7 @@ export class OrdersService {
   async findById(id: string, tenantId: string): Promise<Order> {
     const order = await this.orderRepository.findOne({
       where: { id, tenantId },
-      relations: ['items', 'staff', 'branch'],
+      relations: ['items', 'staff', 'branch', 'customer'],
     });
     if (!order) {
       throw new NotFoundException('Order not found');
@@ -94,12 +96,28 @@ export class OrdersService {
       const tax = Number((subtotal * 0.1925).toFixed(2));
       const total = subtotal + tax;
 
+      let deliveryAddress: Record<string, any> | undefined;
+      if (dto.addressId) {
+        const address = await this.addressesService.findById(dto.addressId, customerId);
+        deliveryAddress = {
+          id: address.id,
+          label: address.label,
+          addressLine1: address.addressLine1,
+          addressLine2: address.addressLine2,
+          city: address.city,
+          state: address.state,
+          postalCode: address.postalCode,
+          country: address.country,
+        };
+      }
+
       const order = orderRepo.create({
         tenantId,
         customerId,
         branchId: dto.branchId,
         notes: dto.notes,
         isExpress: dto.isExpress ?? false,
+        deliveryAddress,
         status: 'pending',
         subtotal,
         tax,

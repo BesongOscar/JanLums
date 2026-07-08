@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { Tenant } from '../../tenants/entities/tenant.entity';
 import { Branch } from '../../branches/entities/branch.entity';
 import { User } from '../../users/entities/user.entity';
+import { Customer } from '../../customers/entities/customer.entity';
 
 @Entity('orders')
 export class Order {
@@ -24,6 +25,10 @@ export class Order {
 
   @Column({ type: 'uuid', nullable: true })
   customerId?: string;
+
+  @ManyToOne(() => Customer, { nullable: true })
+  @JoinColumn({ name: 'customer_id' })
+  customer: Customer;
 
   @Column({ type: 'uuid', nullable: true })
   staffId?: string;
@@ -64,6 +69,9 @@ export class Order {
 
   @Column({ default: false })
   isExpress: boolean;
+
+  @Column({ type: 'simple-json', nullable: true })
+  deliveryAddress?: Record<string, any>;
 
   @Column({ nullable: true })
   qrCode?: string;

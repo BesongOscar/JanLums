@@ -30,7 +30,12 @@ export interface AnalyticsEvent {
     | 'profile_updated'
     | 'profile_update_failed'
     | 'settings_viewed'
-    | 'scan_history_viewed';
+    | 'scan_history_viewed'
+    | 'loyalty_screen_viewed'
+    | 'order_queued_for_sync'
+    | 'sync_queue_processed'
+    | 'sync_queue_screen_viewed'
+    | 'deep_link_opened';
   properties?: Record<string, unknown>;
 }
 

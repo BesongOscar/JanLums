@@ -4,7 +4,7 @@ import { Text, Button, ActivityIndicator, Dialog, Portal, IconButton } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useAnalytics } from '../../src/hooks/useAnalytics';
+import { useAnalytics } from '../../../src/hooks/useAnalytics';
 import {
   useNotifications,
   useUnreadNotificationCount,
@@ -12,13 +12,13 @@ import {
   useMarkAllNotificationsRead,
   useDeleteNotification,
   useDeleteAllNotifications,
-} from '../../src/hooks/useNotifications';
-import { NotificationCard } from '../../src/components/features/NotificationCard';
-import { useOfflineBlock } from '../../src/hooks/useOfflineBlock';
-import { colors } from '../../src/config/colors';
-import { spacing, borderRadius } from '../../src/config/spacing';
-import { typography } from '../../src/config/typography';
-import { AppNotification } from '../../src/types';
+} from '../../../src/hooks/useNotifications';
+import { NotificationCard } from '../../../src/components/features/NotificationCard';
+import { useOfflineBlock } from '../../../src/hooks/useOfflineBlock';
+import { colors } from '../../../src/config/colors';
+import { spacing, borderRadius } from '../../../src/config/spacing';
+import { typography } from '../../../src/config/typography';
+import { AppNotification } from '../../../src/types';
 
 type ConfirmAction = 'markAllRead' | 'deleteAll' | null;
 
@@ -45,17 +45,8 @@ export default function NotificationsScreen() {
   const hasNotifications = notifications && notifications.length > 0;
 
   const handleNotificationPress = useCallback((notification: AppNotification) => {
-    analytics.track({ name: 'notification_opened', properties: { id: notification.id, type: notification.type } });
-
-    if (!notification.isRead) {
-      markRead.mutate(notification.id);
-    }
-
-    const orderId = notification.metadata?.orderId;
-    if (orderId) {
-      router.push(`/orders/${orderId}`);
-    }
-  }, [analytics, markRead, router]);
+    router.push(`/(tabs)/notifications/${notification.id}` as any);
+  }, [router]);
 
   const handleDelete = useCallback((notification: AppNotification) => {
     if (blockIfOffline('delete notifications')) return;
@@ -159,7 +150,7 @@ export default function NotificationsScreen() {
       <View style={styles.screenHeader}>
         <Text style={styles.screenTitle}>Notifications</Text>
         {unreadCount > 0 && (
-          <View style={styles.badgeContainer} accessibilityRole="text" accessibilityLabel={`${unreadCount} unread notifications`}>
+          <View style={styles.badgeContainer} accessibilityLabel={`${unreadCount} unread notifications`} accessibilityRole="text">
             <Text style={styles.badgeText}>{unreadCount}</Text>
           </View>
         )}
@@ -185,7 +176,7 @@ export default function NotificationsScreen() {
       <Portal>
         <Dialog visible={confirmAction === 'markAllRead'} onDismiss={() => setConfirmAction(null)}>
           <Dialog.Icon icon="check-all" />
-          <Dialog.Title accessibilityRole="header">Mark all as read?</Dialog.Title>
+          <Dialog.Title>Mark all as read?</Dialog.Title>
           <Dialog.Content>
             <Text>This will mark all notifications as read.</Text>
           </Dialog.Content>
@@ -197,7 +188,7 @@ export default function NotificationsScreen() {
 
         <Dialog visible={confirmAction === 'deleteAll'} onDismiss={() => setConfirmAction(null)}>
           <Dialog.Icon icon="delete" />
-          <Dialog.Title accessibilityRole="header">Delete all notifications?</Dialog.Title>
+          <Dialog.Title>Delete all notifications?</Dialog.Title>
           <Dialog.Content>
             <Text>This action cannot be undone. All notifications will be permanently deleted.</Text>
           </Dialog.Content>

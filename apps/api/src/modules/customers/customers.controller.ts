@@ -4,11 +4,12 @@ import { CustomersService } from './customers.service';
 import { Customer } from './entities/customer.entity';
 import { UpdateMyProfileDto } from './dto/update-my-profile.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CustomerOrAdminGuard } from '../auth/guards/customer-or-admin.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('customers')
 @ApiBearerAuth('JWT')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, CustomerOrAdminGuard)
 @Controller('customers')
 export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}

@@ -9,10 +9,17 @@ import { colors } from '../../src/config/colors';
 import { spacing, borderRadius } from '../../src/config/spacing';
 import { typography } from '../../src/config/typography';
 
+const PAYMENT_LABELS: Record<string, string> = {
+  mtn: 'MTN Mobile Money',
+  orange: 'Orange Money',
+  cash: 'Cash',
+  card: 'Card',
+};
+
 export default function OrderSuccessScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, paymentMethod, queued } = useLocalSearchParams<{ id: string; paymentMethod: string; queued: string }>();
 
   const { data: order } = useOrderDetails(id ?? '');
 
@@ -38,58 +45,92 @@ export default function OrderSuccessScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.content}>
-        <View style={styles.successIcon}>
-          <MaterialCommunityIcons name="check-circle" size={80} color={colors.success.DEFAULT} />
-        </View>
-
-        <Text style={styles.title}>Order Submitted!</Text>
-        <Text style={styles.subtitle}>
-          Your laundry order has been received and is being processed.
-        </Text>
-
-        {order && (
-          <View style={styles.orderInfo}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Order Number</Text>
-              <Text style={styles.infoValue}>
-                #{order.id.slice(0, 8).toUpperCase()}
-              </Text>
+        {queued === 'true' ? (
+          <>
+            <View style={styles.successIcon}>
+              <MaterialCommunityIcons name="clock-outline" size={80} color={colors.warning.DEFAULT} />
             </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Status</Text>
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>Pending</Text>
+            <Text style={styles.title}>Order Queued</Text>
+            <Text style={styles.subtitle}>
+              Your order has been saved and will be submitted automatically once you're back online.
+            </Text>
+            <View style={styles.orderInfo}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Payment</Text>
+                <Text style={styles.infoValue}>{paymentMethod && PAYMENT_LABELS[paymentMethod] ? PAYMENT_LABELS[paymentMethod] : 'Not selected'}</Text>
               </View>
             </View>
-            {order.branch?.name && (
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Branch</Text>
-                <Text style={styles.infoValue}>{order.branch.name}</Text>
+            <View style={styles.actions}>
+              <Button
+                mode="outlined"
+                onPress={handleBackToHome}
+                style={styles.homeButton}
+                contentStyle={styles.homeButtonContent}
+                icon="home"
+              >
+                Back To Home
+              </Button>
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.successIcon}>
+              <MaterialCommunityIcons name="check-circle" size={80} color={colors.success.DEFAULT} />
+            </View>
+            <Text style={styles.title}>Order Submitted!</Text>
+            <Text style={styles.subtitle}>
+              Your laundry order has been received and is being processed.
+            </Text>
+            {order && (
+              <View style={styles.orderInfo}>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Order Number</Text>
+                  <Text style={styles.infoValue}>
+                    #{order.id.slice(0, 8).toUpperCase()}
+                  </Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Status</Text>
+                  <View style={styles.statusBadge}>
+                    <Text style={styles.statusText}>Pending</Text>
+                  </View>
+                </View>
+                {order.branch?.name && (
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Branch</Text>
+                    <Text style={styles.infoValue}>{order.branch.name}</Text>
+                  </View>
+                )}
+                {paymentMethod && PAYMENT_LABELS[paymentMethod] && (
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Payment</Text>
+                    <Text style={styles.infoValue}>{PAYMENT_LABELS[paymentMethod]}</Text>
+                  </View>
+                )}
               </View>
             )}
-          </View>
+            <View style={styles.actions}>
+              <Button
+                mode="contained"
+                onPress={handleTrackOrder}
+                style={styles.trackButton}
+                contentStyle={styles.trackButtonContent}
+                icon="map-marker-path"
+              >
+                Track Order
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={handleBackToHome}
+                style={styles.homeButton}
+                contentStyle={styles.homeButtonContent}
+                icon="home"
+              >
+                Back To Home
+              </Button>
+            </View>
+          </>
         )}
-
-        <View style={styles.actions}>
-          <Button
-            mode="contained"
-            onPress={handleTrackOrder}
-            style={styles.trackButton}
-            contentStyle={styles.trackButtonContent}
-            icon="map-marker-path"
-          >
-            Track Order
-          </Button>
-          <Button
-            mode="outlined"
-            onPress={handleBackToHome}
-            style={styles.homeButton}
-            contentStyle={styles.homeButtonContent}
-            icon="home"
-          >
-            Back To Home
-          </Button>
-        </View>
       </View>
     </View>
   );

@@ -1,11 +1,13 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ForbiddenException, ConflictException, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
 import { Customer } from '../customers/entities/customer.entity';
+import { Tenant } from '../tenants/entities/tenant.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -16,19 +18,42 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
+    @InjectRepository(Tenant)
+    private readonly tenantRepository: Repository<Tenant>,
   ) {}
 
   async login(loginDto: LoginDto) {
-    const user = await this.usersService.findByEmail(loginDto.email);
+    let user: User | null;
+    let tenantName: string | null = null;
+
+    if (loginDto.tenantSlug) {
+      const tenant = await this.tenantRepository.findOne({ where: { slug: loginDto.tenantSlug } });
+      if (!tenant) {
+        throw new UnauthorizedException('Invalid tenant');
+      }
+      tenantName = tenant.name;
+      user = await this.usersService.findByEmailAndTenant(loginDto.email, tenant.id);
+    } else {
+      user = await this.usersService.findByEmail(loginDto.email);
+    }
     
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (!tenantName && user.tenantId) {
+      const tenant = await this.tenantRepository.findOne({ where: { id: user.tenantId } });
+      tenantName = tenant?.name ?? null;
     }
 
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.passwordHash);
     
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.role !== 'admin' && user.role !== 'customer' && user.role !== 'platform_admin') {
+      throw new ForbiddenException('Access denied. Only tenant administrators can access this application.');
     }
 
     const payload = {
@@ -50,6 +75,7 @@ export class AuthService {
         lastName: user.lastName,
         role: user.role,
         tenantId: user.tenantId,
+        tenantName,
       },
     };
   }
@@ -61,6 +87,20 @@ export class AuthService {
       throw new ConflictException('User already exists');
     }
 
+    let tenantId = registerDto.tenantId;
+
+    if (registerDto.tenantSlug) {
+      const tenant = await this.tenantRepository.findOne({ where: { slug: registerDto.tenantSlug } });
+      if (!tenant) {
+        throw new NotFoundException('Tenant not found');
+      }
+      tenantId = tenant.id;
+    }
+
+    if (!tenantId) {
+      throw new UnauthorizedException('Tenant identifier is required');
+    }
+
     const passwordHash = await bcrypt.hash(registerDto.password, 10);
 
     const user = await this.dataSource.transaction(async (manager) => {
@@ -70,7 +110,7 @@ export class AuthService {
         firstName: registerDto.firstName,
         lastName: registerDto.lastName,
         phone: registerDto.phone,
-        tenantId: registerDto.tenantId,
+        tenantId,
         role: registerDto.role || 'customer',
       });
 

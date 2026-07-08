@@ -14,6 +14,16 @@ import { ServicesModule } from './modules/services/services.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { QrCodeModule } from './modules/qr-code/qr-code.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { BillingModule } from './modules/billing/billing.module';
+import { PublicModule } from './modules/public/public.module';
+import { DeliveryModule } from './modules/delivery/delivery.module';
+import { EmployeesModule } from './modules/employees/employees.module';
+import { PayrollModule } from './modules/payroll/payroll.module';
+import { LotsModule } from './modules/lots/lots.module';
+import { SettingsModule } from './modules/settings/settings.module';
+import { ReportsModule } from './modules/reports/reports.module';
+import { AddressesModule } from './modules/addresses/addresses.module';
 
 @Module({
   imports: [
@@ -43,6 +53,16 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     InventoryModule,
     QrCodeModule,
     NotificationsModule,
+    AdminModule,
+    BillingModule,
+    PublicModule,
+    DeliveryModule,
+    EmployeesModule,
+    PayrollModule,
+    LotsModule,
+    SettingsModule,
+    ReportsModule,
+    AddressesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,13 +1,16 @@
 import { create } from 'zustand';
-import { AuthUser } from '../types';
+import { AuthUser, TenantInfo } from '../types';
 import { secureStorage } from '../services/secureStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const TENANT_STORAGE_KEY = '@janlums/tenant';
 
 interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   user: AuthUser | null;
   tenantId: string | null;
+  tenant: TenantInfo | null;
   isAuthenticated: boolean;
   isLoading: boolean;
 
@@ -15,6 +18,8 @@ interface AuthState {
   logout: () => Promise<void>;
   restoreSession: () => Promise<void>;
   updateUser: (updates: Partial<AuthUser>) => void;
+  setTenant: (tenant: TenantInfo) => Promise<void>;
+  clearTenant: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -22,6 +27,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   refreshToken: null,
   user: null,
   tenantId: null,
+  tenant: null,
   isAuthenticated: false,
   isLoading: true,
 
@@ -81,4 +87,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ user: updatedUser });
     }
   },
+
+  setTenant: async (tenant) => {
+    await AsyncStorage.setItem(TENANT_STORAGE_KEY, JSON.stringify(tenant));
+    set({ tenant });
+  },
+
+  clearTenant: async () => {
+    await AsyncStorage.removeItem(TENANT_STORAGE_KEY);
+    set({ tenant: null });
+  },
 }));
+
+export async function restoreTenant(): Promise<TenantInfo | null> {
+  try {
+    const json = await AsyncStorage.getItem(TENANT_STORAGE_KEY);
+    if (json) {
+      return JSON.parse(json) as TenantInfo;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}

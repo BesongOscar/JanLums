@@ -7,6 +7,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCustomerProfile } from '../../../src/hooks/useCustomerProfile';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { useAnalytics } from '../../../src/hooks/useAnalytics';
+import { isFeatureEnabled } from '../../../src/config/features';
 import { colors } from '../../../src/config/colors';
 import { spacing, borderRadius } from '../../../src/config/spacing';
 import { typography } from '../../../src/config/typography';
@@ -130,6 +131,28 @@ export default function AccountScreen() {
         >
           Edit Profile
         </Button>
+
+        <Button
+          mode="outlined"
+          onPress={() => router.push('/(tabs)/account/addresses' as any)}
+          style={styles.settingsButton}
+          icon="map-marker"
+          accessibilityLabel="Manage saved addresses"
+        >
+          Saved Addresses
+        </Button>
+
+        {isFeatureEnabled('loyaltyProgram') && (
+          <Button
+            mode="outlined"
+            onPress={() => router.push('/(tabs)/account/loyalty')}
+            style={styles.settingsButton}
+            icon="star"
+            accessibilityLabel="View loyalty rewards"
+          >
+            Loyalty & Rewards
+          </Button>
+        )}
 
         <Button
           mode="outlined"

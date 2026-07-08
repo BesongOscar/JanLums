@@ -1,16 +1,24 @@
+import { useCallback } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, TextInput, Button, HelperText } from 'react-native-paper';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginFormData } from '../../src/features/auth/validation';
 import { useLogin } from '../../src/features/auth/hooks/useLogin';
+import { useAuthStore } from '../../src/stores/authStore';
 import { normalizeError } from '../../src/utils/errorHandler';
 import { useOfflineBlock } from '../../src/hooks/useOfflineBlock';
 import { colors } from '../../src/config/colors';
 
+function goToBusinessCode(router: ReturnType<typeof useRouter>) {
+  router.replace('/(auth)/business-code' as any);
+}
+
 export default function LoginScreen() {
+  const router = useRouter();
   const loginMutation = useLogin();
+  const { tenant, clearTenant } = useAuthStore();
   const { blockIfOffline } = useOfflineBlock();
 
   const {
@@ -21,10 +29,22 @@ export default function LoginScreen() {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = (data: LoginFormData) => {
-    if (blockIfOffline('log in')) return;
-    loginMutation.mutate(data);
-  };
+  const onSubmit = useCallback(
+    (data: LoginFormData) => {
+      if (blockIfOffline('log in')) return;
+      if (!tenant?.slug) {
+        goToBusinessCode(router);
+        return;
+      }
+      loginMutation.mutate({ ...data, tenantSlug: tenant.slug });
+    },
+    [loginMutation, blockIfOffline, tenant, router]
+  );
+
+  const handleChangeBusiness = useCallback(async () => {
+    await clearTenant();
+    goToBusinessCode(router);
+  }, [clearTenant, router]);
 
   const errorMessage = loginMutation.error
     ? normalizeError(loginMutation.error).message
@@ -42,11 +62,21 @@ export default function LoginScreen() {
       >
         <View style={styles.header}>
           <Text variant="displayMedium" style={styles.title} accessibilityRole="header">
-            JanLums
+            {tenant?.name || 'JanLums'}
           </Text>
           <Text variant="bodyLarge" style={styles.subtitle}>
             Professional Laundry Services
           </Text>
+          <Button
+            mode="text"
+            onPress={handleChangeBusiness}
+            compact
+            style={styles.changeBusiness as any}
+            textColor={colors.text.secondary}
+            accessibilityLabel="Change business"
+          >
+            Change Business
+          </Button>
         </View>
 
         <View style={styles.form}>
@@ -163,5 +193,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.error.light,
     borderRadius: 8,
     marginBottom: 8,
+  },
+  changeBusiness: {
+    marginTop: 4,
   },
 });

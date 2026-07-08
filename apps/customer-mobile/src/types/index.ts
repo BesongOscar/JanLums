@@ -18,6 +18,8 @@ export type PaymentProvider = 'mtn' | 'orange' | 'cash' | 'card';
 
 export type AddressLabel = 'home' | 'work' | 'other';
 
+export type CustomerTier = 'bronze' | 'silver' | 'gold' | 'platinum';
+
 export type BackendNotificationType =
   | 'order_created'
   | 'order_received'
@@ -37,6 +39,13 @@ export interface AppNotification {
   metadata: { orderId?: string; orderStatus?: string } | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface TenantInfo {
+  slug: string;
+  name: string;
+  logoUrl?: string;
+  primaryColor?: string;
 }
 
 export interface AuthUser {
@@ -122,6 +131,8 @@ export interface Customer extends BaseEntity {
   address?: string;
   city?: string;
   preferences?: Record<string, any>;
+  loyaltyTier: CustomerTier;
+  loyaltyPoints: number;
   totalSpent: number;
   totalOrders: number;
   isActive: boolean;
@@ -176,12 +187,21 @@ export interface OrderDraftItem {
   specialInstructions?: string;
 }
 
+export interface GarmentDraftItem {
+  garmentType: string;
+  fabricType?: string;
+  color?: string;
+  quantity: number;
+  specialInstructions?: string;
+}
+
 export interface ServiceDraftItem {
   serviceId: string;
   serviceName: string;
   quantity: number;
   estimatedPrice: number;
   notes?: string;
+  garments?: GarmentDraftItem[];
 }
 
 export interface ApiResponse<T> {
@@ -196,6 +216,23 @@ export interface ApiResponse<T> {
     hasPrevPage?: boolean;
   };
   message?: string;
+}
+
+export type QueuedOperationType = 'create_order';
+
+export type QueuedOperationStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+export interface QueuedOperation {
+  id: string;
+  type: QueuedOperationType;
+  label: string;
+  payload: Record<string, unknown>;
+  status: QueuedOperationStatus;
+  createdAt: string;
+  lastAttemptAt?: string;
+  attemptCount: number;
+  error?: string;
+  maxAttempts: number;
 }
 
 export interface ApiError {

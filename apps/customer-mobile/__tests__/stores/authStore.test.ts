@@ -1,4 +1,4 @@
-import { useAuthStore } from '../../src/stores/authStore';
+import { useAuthStore, restoreTenant } from '../../src/stores/authStore';
 import { secureStorage } from '../../src/services/secureStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -25,6 +25,13 @@ const mockUser = {
   tenantId: 'tenant-1',
 };
 
+const mockTenant = {
+  slug: 'test-business',
+  name: 'Test Business',
+  logoUrl: undefined,
+  primaryColor: '#00A86B',
+};
+
 describe('authStore', () => {
   beforeEach(() => {
     useAuthStore.setState({
@@ -32,6 +39,7 @@ describe('authStore', () => {
       refreshToken: null,
       user: null,
       tenantId: null,
+      tenant: null,
       isAuthenticated: false,
       isLoading: true,
     });
@@ -44,6 +52,7 @@ describe('authStore', () => {
       expect(state.isAuthenticated).toBe(false);
       expect(state.accessToken).toBeNull();
       expect(state.user).toBeNull();
+      expect(state.tenant).toBeNull();
     });
   });
 
@@ -74,7 +83,8 @@ describe('authStore', () => {
   });
 
   describe('logout', () => {
-    it('clears auth state', async () => {
+    it('clears auth state but preserves tenant', async () => {
+      await useAuthStore.getState().setTenant(mockTenant);
       await useAuthStore.getState().setAuth('token-123', 'refresh-456', mockUser);
       await useAuthStore.getState().logout();
 
@@ -82,6 +92,7 @@ describe('authStore', () => {
       expect(state.isAuthenticated).toBe(false);
       expect(state.accessToken).toBeNull();
       expect(state.user).toBeNull();
+      expect(state.tenant).toEqual(mockTenant);
     });
 
     it('clears storage', async () => {
@@ -136,6 +147,66 @@ describe('authStore', () => {
       const state = useAuthStore.getState();
       expect(state.user?.firstName).toBe('Updated');
       expect(state.user?.lastName).toBe('User');
+    });
+  });
+
+  describe('setTenant', () => {
+    it('sets tenant in state', async () => {
+      await useAuthStore.getState().setTenant(mockTenant);
+
+      const state = useAuthStore.getState();
+      expect(state.tenant).toEqual(mockTenant);
+    });
+
+    it('persists tenant to storage', async () => {
+      await useAuthStore.getState().setTenant(mockTenant);
+
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+        '@janlums/tenant',
+        JSON.stringify(mockTenant)
+      );
+    });
+  });
+
+  describe('clearTenant', () => {
+    it('clears tenant from state', async () => {
+      await useAuthStore.getState().setTenant(mockTenant);
+      await useAuthStore.getState().clearTenant();
+
+      const state = useAuthStore.getState();
+      expect(state.tenant).toBeNull();
+    });
+
+    it('removes tenant from storage', async () => {
+      await useAuthStore.getState().clearTenant();
+
+      expect(AsyncStorage.removeItem).toHaveBeenCalledWith('@janlums/tenant');
+    });
+  });
+
+  describe('restoreTenant', () => {
+    it('returns tenant from storage', async () => {
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(mockTenant));
+
+      const tenant = await restoreTenant();
+
+      expect(tenant).toEqual(mockTenant);
+    });
+
+    it('returns null when no tenant stored', async () => {
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+
+      const tenant = await restoreTenant();
+
+      expect(tenant).toBeNull();
+    });
+
+    it('returns null on error', async () => {
+      (AsyncStorage.getItem as jest.Mock).mockRejectedValue(new Error('storage error'));
+
+      const tenant = await restoreTenant();
+
+      expect(tenant).toBeNull();
     });
   });
 });

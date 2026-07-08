@@ -55,12 +55,13 @@ describe('useLogin', () => {
       refreshToken: null,
       user: null,
       tenantId: null,
+      tenant: null,
       isAuthenticated: false,
       isLoading: false,
     });
   });
 
-  it('calls authService.login with credentials', async () => {
+  it('calls authService.login with credentials including tenantSlug', async () => {
     mockedAuthService.login.mockResolvedValue(mockLoginResponse);
 
     const { result } = renderHook(() => useLogin(), { wrapper: Wrapper });
@@ -69,14 +70,14 @@ describe('useLogin', () => {
       await result.current.mutateAsync({
         email: 'test@example.com',
         password: 'password123',
-        tenantId: 'tenant-1',
+        tenantSlug: 'test-business',
       });
     });
 
     expect(mockedAuthService.login.mock.calls[0][0]).toEqual({
       email: 'test@example.com',
       password: 'password123',
-      tenantId: 'tenant-1',
+      tenantSlug: 'test-business',
     });
   });
 
@@ -89,7 +90,7 @@ describe('useLogin', () => {
       await result.current.mutateAsync({
         email: 'test@example.com',
         password: 'password123',
-        tenantId: 'tenant-1',
+        tenantSlug: 'test-business',
       });
     });
 
@@ -108,7 +109,7 @@ describe('useLogin', () => {
       await result.current.mutateAsync({
         email: 'test@example.com',
         password: 'password123',
-        tenantId: 'tenant-1',
+        tenantSlug: 'test-business',
       });
     });
 
@@ -125,7 +126,7 @@ describe('useLogin', () => {
         await result.current.mutateAsync({
           email: 'wrong@example.com',
           password: 'wrong',
-          tenantId: 'tenant-1',
+          tenantSlug: 'test-business',
         });
       } catch {
         // expected

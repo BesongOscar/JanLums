@@ -5,11 +5,12 @@ import { CustomersService } from '../customers/customers.service';
 import { Order } from './entities/order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CustomerOrAdminGuard } from '../auth/guards/customer-or-admin.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('orders')
 @ApiBearerAuth('JWT')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, CustomerOrAdminGuard)
 @Controller('orders')
 export class OrdersController {
   constructor(
