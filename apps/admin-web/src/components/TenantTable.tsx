@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { CheckCircle, XCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Trash2 } from 'lucide-react';
 
 interface TenantRow {
   id: string;
@@ -17,9 +17,10 @@ interface TenantTableProps {
   tenants: TenantRow[];
   isLoading: boolean;
   onToggleStatus: (id: string, status: string) => void;
+  onDelete: (id: string, name: string) => void;
 }
 
-export default function TenantTable({ tenants, isLoading, onToggleStatus }: TenantTableProps) {
+export default function TenantTable({ tenants, isLoading, onToggleStatus, onDelete }: TenantTableProps) {
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
@@ -110,7 +111,7 @@ export default function TenantTable({ tenants, isLoading, onToggleStatus }: Tena
               <td className="px-6 py-4 text-sm text-gray-600">
                 {new Date(tenant.createdAt).toLocaleDateString()}
               </td>
-              <td className="px-6 py-4 text-right">
+              <td className="px-6 py-4 text-right space-x-1">
                 <button
                   onClick={() => onToggleStatus(tenant.id, tenant.status)}
                   className={`text-sm px-3 py-1.5 rounded-lg ${
@@ -120,6 +121,13 @@ export default function TenantTable({ tenants, isLoading, onToggleStatus }: Tena
                   }`}
                 >
                   {tenant.status === 'active' ? 'Suspend' : 'Activate'}
+                </button>
+                <button
+                  onClick={() => onDelete(tenant.id, tenant.name)}
+                  className="text-sm px-3 py-1.5 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50"
+                  title="Delete tenant"
+                >
+                  <Trash2 className="w-4 h-4 inline" />
                 </button>
               </td>
             </tr>

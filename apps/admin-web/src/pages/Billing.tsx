@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Download, Star, Check } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Download, Star, Check, DollarSign } from 'lucide-react';
 import { adminApiService } from '../api/adminApi';
 
 interface SubscriptionPlan {
@@ -23,11 +24,19 @@ export default function Billing() {
   const { data: plans } = useQuery({
     queryKey: ['billing-plans'],
     queryFn: () => adminApiService.listPlans(),
+    staleTime: 60000,
   });
 
   const { data: invoices } = useQuery({
     queryKey: ['billing-invoices'],
     queryFn: () => adminApiService.listInvoices(),
+    staleTime: 30000,
+  });
+
+  const { data: revenue } = useQuery({
+    queryKey: ['billing-revenue'],
+    queryFn: () => adminApiService.getRevenueRecognition(),
+    staleTime: 60000,
   });
 
   const updateMutation = useMutation({
@@ -104,6 +113,46 @@ export default function Billing() {
           </div>
         ))}
       </div>
+
+      {revenue && (
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-green-50 rounded-lg">
+              <DollarSign className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Revenue Recognition</h3>
+              <p className="text-2xl font-bold text-green-700">${revenue.totalRecognized.toFixed(2)}</p>
+            </div>
+          </div>
+          {revenue.byMonth?.length > 0 && (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={revenue.byMonth}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="amount" fill="#10b981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+          {revenue.byTenant?.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-medium text-gray-500 mb-2">By Tenant</h4>
+              <div className="space-y-2">
+                {revenue.byTenant.map((t: any) => (
+                  <div key={t.name} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-4 py-2">
+                    <span className="text-gray-700">{t.name}</span>
+                    <span className="font-medium text-gray-900">${t.amount.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow-sm border p-6">
         <div className="flex items-center justify-between mb-4">

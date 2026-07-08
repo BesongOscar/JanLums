@@ -3,6 +3,7 @@ import { Exclude } from 'class-transformer';
 import { Customer } from '../../customers/entities/customer.entity';
 
 @Entity('users')
+@Index(['email', 'tenantId'], { unique: true })
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -10,7 +11,7 @@ export class User {
   @Column({ type: 'uuid' })
   tenantId: string;
 
-  @Column({ unique: true })
+  @Column()
   @Index()
   email: string;
 

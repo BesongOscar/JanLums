@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node ../../node_modules/vite/bin/vite.js --port 3085",
     "build": "node ../../node_modules/typescript/bin/tsc && node ../../node_modules/vite/bin/vite.js build",
-    "preview": "vite preview --port 3085",
+    "preview": "node ../../node_modules/vite/bin/vite.js preview --port 3085",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "typecheck": "node ../../node_modules/typescript/bin/tsc --noEmit"
   },

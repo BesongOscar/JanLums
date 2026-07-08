@@ -10,7 +10,7 @@
     "start:prod": "node dist/main",
     "migration:run": "node ../../node_modules/typeorm/cli-ts-node-commonjs.js migration:run -d src/database/data-source.ts",
     "migration:revert": "node ../../node_modules/typeorm/cli-ts-node-commonjs.js migration:revert -d src/database/data-source.ts",
-    "seed": "npx ts-node src/database/seeds/index.ts",
+    "seed": "node ../../node_modules/ts-node/dist/bin.js src/database/seeds/index.ts",
     "test": "jest",
     "test:cov": "jest --coverage"
   },

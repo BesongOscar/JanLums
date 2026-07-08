@@ -107,11 +107,8 @@ export const adminApiService = {
   resetPassword: (userId: string) =>
     adminApi.post<{ newPassword: string }>(`/admin/users/${userId}/reset-password`).then((r) => r.data),
 
-  listUsers: (tenantId?: string, role?: string) =>
-    adminApi.get<User[]>('/users', { params: { tenantId, role } }).then((r) => r.data),
-
-  assignPlan: (tenantId: string, planId: string) =>
-    adminApi.post(`/admin/tenants/${tenantId}/plan`, { planId }).then((r) => r.data),
+  listUsers: (tenantId?: string, role?: string, page?: number, limit?: number) =>
+    adminApi.get<{ data: User[]; total: number; page: number; limit: number }>('/users', { params: { tenantId, role, page, limit } }).then((r) => r.data),
 
   getUser: (id: string) =>
     adminApi.get<User>(`/users/${id}`).then((r) => r.data),
@@ -134,8 +131,20 @@ export const adminApiService = {
   updatePlan: (id: string, data: any) =>
     adminApi.put<any>(`/billing/plans/${id}`, data).then((r) => r.data),
 
-  listInvoices: () =>
-    adminApi.get<any[]>('/billing/invoices').then((r) => r.data),
+  listInvoices: (tenantId?: string) =>
+    adminApi.get<any[]>('/billing/invoices', { params: { tenantId } }).then((r) => r.data),
+
+  assignPlan: (tenantId: string, planId: string) =>
+    adminApi.post(`/admin/tenants/${tenantId}/plan`, { planId }).then((r) => r.data),
+
+  getGeographicDistribution: () =>
+    adminApi.get<{ city: string; count: number }[]>('/admin/analytics/geographic').then((r) => r.data),
+
+  getTenantMetrics: (tenantId: string) =>
+    adminApi.get<any>(`/admin/tenants/${tenantId}/metrics`).then((r) => r.data),
+
+  getRevenueRecognition: () =>
+    adminApi.get<any>('/billing/revenue').then((r) => r.data),
 };
 
 export default adminApi;

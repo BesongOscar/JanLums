@@ -10,10 +10,11 @@ export default function Users() {
   const [roleFilter, setRoleFilter] = useState('');
   const [resetResult, setResetResult] = useState<{ id: string; password: string } | null>(null);
 
-  const { data: allUsers, isLoading: usersLoading } = useQuery({
-    queryKey: ['users', tenantFilter || undefined, roleFilter || undefined],
-    queryFn: () => adminApiService.listUsers(tenantFilter || undefined, roleFilter || undefined),
+  const { data: usersResp, isLoading: usersLoading } = useQuery({
+    queryKey: ['users', tenantFilter || undefined, roleFilter || undefined, 1, 200],
+    queryFn: () => adminApiService.listUsers(tenantFilter || undefined, roleFilter || undefined, 1, 200),
   });
+  const allUsers = usersResp?.data;
 
   const { data: tenants } = useQuery({
     queryKey: ['tenants-summary'],

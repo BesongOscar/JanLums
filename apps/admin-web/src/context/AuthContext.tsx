@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
 
   const isAuthenticated = !!token && !!user;
-  const isPlatformAdmin = user?.role === 'PLATFORM_ADMIN';
+  const isPlatformAdmin = user?.role === 'platform_admin';
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     setLoading(true);

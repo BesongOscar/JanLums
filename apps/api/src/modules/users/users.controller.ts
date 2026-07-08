@@ -2,17 +2,25 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } fro
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 
 @ApiTags('users')
 @ApiBearerAuth('JWT')
+@UseGuards(JwtAuthGuard, AdminGuard)
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all users' })
-  async findAll(@Query('tenantId') tenantId: string): Promise<User[]> {
-    return this.usersService.findAll(tenantId);
+  @ApiOperation({ summary: 'Get all users (omit tenantId for platform-wide)' })
+  async findAll(
+    @Query('tenantId') tenantId?: string,
+    @Query('role') role?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ): Promise<{ data: User[]; total: number; page: number; limit: number }> {
+    return this.usersService.findAll(tenantId, role, page, limit);
   }
 
   @Get(':id')

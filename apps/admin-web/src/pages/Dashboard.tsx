@@ -7,6 +7,7 @@ export default function Dashboard() {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-dashboard'],
     queryFn: adminApiService.getDashboard,
+    staleTime: 60000,
   });
 
   return (

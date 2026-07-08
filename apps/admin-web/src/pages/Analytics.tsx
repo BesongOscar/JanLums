@@ -10,6 +10,13 @@ export default function Analytics() {
   const { data } = useQuery({
     queryKey: ['admin-dashboard'],
     queryFn: adminApiService.getDashboard,
+    staleTime: 60000,
+  });
+
+  const { data: geo } = useQuery({
+    queryKey: ['analytics-geographic'],
+    queryFn: adminApiService.getGeographicDistribution,
+    staleTime: 120000,
   });
 
   const exportCSV = () => {
@@ -125,8 +132,20 @@ export default function Analytics() {
 
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <h3 className="text-sm font-medium text-gray-500 mb-4">Geographic Distribution</h3>
-          <div className="h-72 flex items-center justify-center text-gray-400">
-            Geographic map will be available here.
+          <div className="h-72">
+            {!geo || geo.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-gray-400">No geographic data available</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={geo} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis type="number" tick={{ fontSize: 12 }} />
+                  <YAxis type="category" dataKey="city" tick={{ fontSize: 12 }} width={100} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>

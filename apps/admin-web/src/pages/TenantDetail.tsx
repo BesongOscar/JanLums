@@ -1,41 +1,58 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building2, MapPin, Phone, Mail, CreditCard } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Building2, MapPin, Phone, Mail, CreditCard, Trash2, AlertTriangle, ShoppingBag, DollarSign, Users, Map } from 'lucide-react';
 import { adminApiService } from '../api/adminApi';
 
 export default function TenantDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const deleteMutation = useMutation({
+    mutationFn: () => adminApiService.deleteTenant(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tenants-summary'] });
+      navigate('/tenants');
+    },
+  });
 
   const { data: tenant, isLoading: tenantLoading } = useQuery({
     queryKey: ['tenant', id],
     queryFn: () => adminApiService.getTenant(id!),
     enabled: !!id,
+    staleTime: 30000,
   });
 
   const { data: branches } = useQuery({
     queryKey: ['branches', id],
     queryFn: () => adminApiService.listBranches(id!),
     enabled: !!id,
+    staleTime: 30000,
   });
 
-  const { data: users } = useQuery({
+  const { data: usersResp } = useQuery({
     queryKey: ['users', id],
     queryFn: () => adminApiService.listUsers(id!),
     enabled: !!id,
+    staleTime: 30000,
   });
+  const users = usersResp?.data;
 
   const { data: plans } = useQuery({
     queryKey: ['billing-plans'],
     queryFn: () => adminApiService.listPlans(),
+    staleTime: 60000,
   });
 
   const { data: invoices } = useQuery({
     queryKey: ['billing-invoices-tenant', id],
-    queryFn: () => adminApiService.listInvoices().then((inv: any[]) => inv.filter((i) => i.tenantId === id)),
+    queryFn: () => adminApiService.listInvoices(id),
     enabled: !!id,
+    staleTime: 15000,
   });
 
   const assignPlanMutation = useMutation({
@@ -48,6 +65,13 @@ export default function TenantDetail() {
 
   const currentPlanId = invoices?.[0]?.planId;
   const currentPlanName = invoices?.[0]?.plan?.name || 'None';
+
+  const { data: metrics } = useQuery({
+    queryKey: ['tenant-metrics', id],
+    queryFn: () => adminApiService.getTenantMetrics(id!),
+    enabled: !!id,
+    staleTime: 15000,
+  });
 
   if (tenantLoading || !tenant) {
     return <div className="text-center text-gray-500 py-12">Loading tenant details...</div>;
@@ -66,11 +90,20 @@ export default function TenantDetail() {
                 <h2 className="text-xl font-semibold text-gray-900">{tenant.name}</h2>
                 <p className="text-sm text-gray-500">@{tenant.slug}</p>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                tenant.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-              }`}>
-                {tenant.status}
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                  title="Delete tenant"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  tenant.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  {tenant.status}
+                </span>
+              </div>
             </div>
             {tenant.primaryColor && (
               <div className="mt-2 flex items-center gap-2 text-sm text-gray-500">
@@ -163,8 +196,109 @@ export default function TenantDetail() {
 
       <div className="bg-white rounded-lg shadow-sm border p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Usage Metrics</h3>
-        <p className="text-gray-500 text-sm">Usage analytics will be available here.</p>
+        {!metrics ? (
+          <p className="text-gray-500 text-sm">Loading metrics...</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <ShoppingBag className="w-5 h-5 text-blue-600 mb-1" />
+                <p className="text-2xl font-bold text-blue-700">{metrics.totalOrders}</p>
+                <p className="text-xs text-blue-600">Total Orders</p>
+              </div>
+              <div className="bg-green-50 rounded-lg p-4">
+                <DollarSign className="w-5 h-5 text-green-600 mb-1" />
+                <p className="text-2xl font-bold text-green-700">${Number(metrics.totalRevenue).toFixed(2)}</p>
+                <p className="text-xs text-green-600">Total Revenue</p>
+              </div>
+              <div className="bg-purple-50 rounded-lg p-4">
+                <Users className="w-5 h-5 text-purple-600 mb-1" />
+                <p className="text-2xl font-bold text-purple-700">{metrics.activeUsers}</p>
+                <p className="text-xs text-purple-600">Active Users</p>
+              </div>
+              <div className="bg-amber-50 rounded-lg p-4">
+                <Map className="w-5 h-5 text-amber-600 mb-1" />
+                <p className="text-2xl font-bold text-amber-700">{metrics.activeBranches}</p>
+                <p className="text-xs text-amber-600">Active Branches</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {metrics.ordersByDay?.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-3">Orders (30 days)</h4>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={metrics.ordersByDay}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v) => v?.slice(5) || ''} />
+                        <YAxis tick={{ fontSize: 11 }} />
+                        <Tooltip />
+                        <Bar dataKey="count" fill="#3b82f6" radius={[2, 2, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+              {metrics.popularServices?.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-3">Top Services</h4>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={metrics.popularServices} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis type="number" tick={{ fontSize: 11 }} />
+                        <YAxis type="category" dataKey="garmentType" tick={{ fontSize: 11 }} width={90} />
+                        <Tooltip />
+                        <Bar dataKey="count" fill="#10b981" radius={[0, 2, 2, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowDeleteConfirm(false)} />
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">Delete Tenant</h2>
+            </div>
+            <p className="text-sm text-gray-600 mb-2">
+              Are you sure you want to delete <strong>{tenant.name}</strong>?
+            </p>
+            <p className="text-sm text-red-600 mb-6">
+              This will permanently remove all associated data including branches, users, orders, and settings. This action cannot be undone.
+            </p>
+            {deleteMutation.isError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 mb-4">
+                {(deleteMutation.error as any)?.response?.data?.message || 'Failed to delete tenant.'}
+              </div>
+            )}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteMutation.mutate()}
+                disabled={deleteMutation.isPending}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showPlanModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
