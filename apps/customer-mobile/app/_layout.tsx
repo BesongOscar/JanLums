@@ -10,6 +10,9 @@ import { QueryProvider } from '../src/providers/QueryProvider';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { OfflineBanner } from '../src/components/common/OfflineBanner';
 import { useAuthStore, restoreTenant } from '../src/stores/authStore';
+import { useOrderDraftStore } from '../src/stores/orderDraftStore';
+import { useNotificationStore } from '../src/stores/notificationStore';
+import { useSyncQueueStore } from '../src/stores/syncQueueStore';
 import { useSyncQueueProcessor } from '../src/hooks/useSyncQueue';
 import { useDeepLinkHandler } from '../src/hooks/useDeepLinkHandler';
 import { initializeSentry } from '../src/lib/sentry';
@@ -49,6 +52,10 @@ function AppContent() {
   useEffect(() => {
     if (prevIsAuthenticated.current === true && isAuthenticated === false) {
       queryClient.clear();
+      AsyncStorage.multiRemove(['order-draft-storage', 'notification-storage', 'sync-queue-storage']);
+      useOrderDraftStore.getState().reset();
+      useNotificationStore.getState().clearAll();
+      useSyncQueueStore.getState().clearAll();
     }
     prevIsAuthenticated.current = isAuthenticated;
   }, [isAuthenticated, queryClient]);

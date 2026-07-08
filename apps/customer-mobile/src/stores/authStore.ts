@@ -47,12 +47,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     await secureStorage.clearTokens();
     await AsyncStorage.removeItem('auth-user');
+    await AsyncStorage.removeItem(TENANT_STORAGE_KEY);
 
     set({
       accessToken: null,
       refreshToken: null,
       user: null,
       tenantId: null,
+      tenant: null,
       isAuthenticated: false,
     });
   },
