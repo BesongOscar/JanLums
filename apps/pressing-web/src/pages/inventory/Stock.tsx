@@ -1,16 +1,7 @@
-import { useState } from 'react';
-import { useToast } from '../../components/ui/Toast';
-
-const items = [
-  { id: 'INV-001', name: 'Laundry Detergent (5L)', category: 'Chemicals', stock: 12, minLevel: 5, unit: 'Bottles', status: 'In Stock', lastRestocked: '2024-01-10' },
-  { id: 'INV-002', name: 'Fabric Softener (5L)', category: 'Chemicals', stock: 8, minLevel: 5, unit: 'Bottles', status: 'In Stock', lastRestocked: '2024-01-08' },
-  { id: 'INV-003', name: 'Stain Remover (1L)', category: 'Chemicals', stock: 3, minLevel: 5, unit: 'Bottles', status: 'Low Stock', lastRestocked: '2023-12-20' },
-  { id: 'INV-004', name: 'Hangers (50pk)', category: 'Supplies', stock: 25, minLevel: 10, unit: 'Packs', status: 'In Stock', lastRestocked: '2024-01-12' },
-  { id: 'INV-005', name: 'Plastic Bags (100pk)', category: 'Supplies', stock: 40, minLevel: 20, unit: 'Packs', status: 'In Stock', lastRestocked: '2024-01-05' },
-  { id: 'INV-006', name: 'QR Tags (roll)', category: 'Tags', stock: 2, minLevel: 5, unit: 'Rolls', status: 'Low Stock', lastRestocked: '2023-12-15' },
-  { id: 'INV-007', name: 'Thermal Labels (500pk)', category: 'Tags', stock: 0, minLevel: 5, unit: 'Packs', status: 'Out of Stock', lastRestocked: '2023-11-30' },
-  { id: 'INV-008', name: 'Bleach (5L)', category: 'Chemicals', stock: 6, minLevel: 4, unit: 'Bottles', status: 'In Stock', lastRestocked: '2024-01-02' },
-];
+import { useState, useMemo } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useInventory } from '../../hooks/useInventory';
+import { LoadingState } from '../../components/ui/States';
 
 const statusStyles: Record<string, string> = {
   'In Stock': 'bg-success-100 text-success-700',
@@ -19,48 +10,76 @@ const statusStyles: Record<string, string> = {
 };
 
 export default function Stock() {
-  const { showToast } = useToast();
+  const { user } = useAuth();
+  const tenantId = user?.tenantId || '';
+  const { data: inventory, isLoading } = useInventory(tenantId);
   const [search, setSearch] = useState('');
 
-  const filtered = items.filter(i =>
-    i.name.toLowerCase().includes(search.toLowerCase()) ||
-    i.category.toLowerCase().includes(search.toLowerCase()) ||
-    i.id.toLowerCase().includes(search.toLowerCase())
-  );
+  const list = useMemo(() => {
+    const arr = Array.isArray(inventory) ? inventory : [];
+    return arr.filter((i: any) =>
+      i.name?.toLowerCase().includes(search.toLowerCase()) ||
+      i.category?.toLowerCase().includes(search.toLowerCase()) ||
+      i.id?.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [inventory, search]);
 
-  const lowStock = items.filter(i => i.stock <= i.minLevel);
+  const getStatus = (item: any) => {
+    const qty = Number(item.quantity ?? 0);
+    const min = Number(item.minStockLevel ?? 0);
+    if (qty === 0) return 'Out of Stock';
+    if (qty <= min) return 'Low Stock';
+    return 'In Stock';
+  };
+
+  const categories = useMemo(() => {
+    const arr = Array.isArray(inventory) ? inventory : [];
+    return [...new Set(arr.map((i: any) => i.category))];
+  }, [inventory]);
+
+  const lowStockItems = useMemo(() => {
+    const arr = Array.isArray(inventory) ? inventory : [];
+    return arr.filter((i: any) => Number(i.quantity ?? 0) <= Number(i.minStockLevel ?? 0));
+  }, [inventory]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingState />
+      </div>
+    );
+  }
 
   return (
     <div>
       <div className="page-chrome">
         <h1 className="page-title">Inventory Stock</h1>
-        <button onClick={() => showToast('Add item form coming soon', 'success')}
-          className="bg-primary text-white px-4 py-2 rounded text-sm font-bold border-none cursor-pointer hover:bg-primary-dark">+ Add Item</button>
+        <button className="bg-primary text-white px-4 py-2 rounded text-sm font-bold border-none cursor-pointer hover:bg-primary-dark">+ Add Item</button>
       </div>
 
       <div className="grid grid-cols-4 gap-4 my-6">
         <div className="bg-white border border-neutral-200 rounded p-4 shadow-sm">
           <div className="text-neutral-500 text-xs mb-1">Total Items</div>
-          <div className="text-2xl font-bold text-neutral-900">{items.length}</div>
+          <div className="text-2xl font-bold text-neutral-900">{list.length}</div>
         </div>
         <div className="bg-white border border-neutral-200 rounded p-4 shadow-sm">
           <div className="text-neutral-500 text-xs mb-1">Categories</div>
-          <div className="text-2xl font-bold text-neutral-900">{new Set(items.map(i => i.category)).size}</div>
+          <div className="text-2xl font-bold text-neutral-900">{categories.length}</div>
         </div>
         <div className="bg-white border border-warning rounded p-4 shadow-sm border-2">
           <div className="text-neutral-500 text-xs mb-1">Low Stock Alerts</div>
-          <div className="text-2xl font-bold text-warning">{lowStock.filter(i => i.stock > 0).length}</div>
+          <div className="text-2xl font-bold text-warning">{lowStockItems.filter(i => Number(i.quantity) > 0).length}</div>
         </div>
         <div className="bg-white border border-danger rounded p-4 shadow-sm border-2">
           <div className="text-neutral-500 text-xs mb-1">Out of Stock</div>
-          <div className="text-2xl font-bold text-danger">{lowStock.filter(i => i.stock === 0).length}</div>
+          <div className="text-2xl font-bold text-danger">{lowStockItems.filter(i => Number(i.quantity) === 0).length}</div>
         </div>
       </div>
 
       <div className="bg-white border border-neutral-200 border-t-0 px-6 py-5 mb-6">
         <div className="flex justify-between items-center">
           <div className="flex gap-4">
-            {['All Categories', 'Chemicals', 'Supplies', 'Tags'].map(c => (
+            {['All Categories', ...categories].map(c => (
               <button key={c} className={`text-sm font-medium px-3 py-1 rounded-full border-none cursor-pointer ${c === 'All Categories' ? 'bg-primary text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>{c}</button>
             ))}
           </div>
@@ -73,28 +92,39 @@ export default function Stock() {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-neutral-50">
-              {['ID', 'Item', 'Category', 'Stock', 'Min Level', 'Unit', 'Status', 'Last Restocked'].map(h => (
+              {['ID', 'Item', 'Category', 'Stock', 'Min Level', 'Unit', 'Status', 'Last Updated'].map(h => (
                 <th key={h} className="px-6 py-3 text-left font-bold text-primary border-b-2 border-neutral-200">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {filtered.map((item, i) => (
-              <tr key={item.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-neutral-50'} hover:bg-primary-50 transition-colors`}>
-                <td className="px-6 py-3 border-b border-neutral-200 font-medium">{item.id}</td>
-                <td className="px-6 py-3 border-b border-neutral-200">{item.name}</td>
-                <td className="px-6 py-3 border-b border-neutral-200 text-neutral-600">{item.category}</td>
-                <td className="px-6 py-3 border-b border-neutral-200">
-                  <span className={`font-bold ${item.stock <= item.minLevel ? 'text-danger' : 'text-neutral-800'}`}>{item.stock}</span>
-                </td>
-                <td className="px-6 py-3 border-b border-neutral-200">{item.minLevel}</td>
-                <td className="px-6 py-3 border-b border-neutral-200 text-neutral-600">{item.unit}</td>
-                <td className="px-6 py-3 border-b border-neutral-200">
-                  <span className={`status-pill text-xs ${statusStyles[item.status] || 'bg-neutral-100 text-neutral-600'}`}>{item.status}</span>
-                </td>
-                <td className="px-6 py-3 border-b border-neutral-200 text-neutral-500">{item.lastRestocked}</td>
+            {list.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="px-6 py-12 text-center text-sm text-neutral-400">No inventory items</td>
               </tr>
-            ))}
+            ) : (
+              list.map((item: any, i: number) => {
+                const status = getStatus(item);
+                return (
+                  <tr key={item.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-neutral-50'} hover:bg-primary-50 transition-colors`}>
+                    <td className="px-6 py-3 border-b border-neutral-200 font-medium">{item.id?.slice(0, 8)}</td>
+                    <td className="px-6 py-3 border-b border-neutral-200">{item.name}</td>
+                    <td className="px-6 py-3 border-b border-neutral-200 text-neutral-600">{item.category}</td>
+                    <td className="px-6 py-3 border-b border-neutral-200">
+                      <span className={`font-bold ${status !== 'In Stock' ? 'text-danger' : 'text-neutral-800'}`}>{Number(item.quantity)}</span>
+                    </td>
+                    <td className="px-6 py-3 border-b border-neutral-200">{Number(item.minStockLevel)}</td>
+                    <td className="px-6 py-3 border-b border-neutral-200 text-neutral-600">{item.unit}</td>
+                    <td className="px-6 py-3 border-b border-neutral-200">
+                      <span className={`status-pill text-xs ${statusStyles[status] || 'bg-neutral-100 text-neutral-600'}`}>{status}</span>
+                    </td>
+                    <td className="px-6 py-3 border-b border-neutral-200 text-neutral-500">
+                      {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : '-'}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

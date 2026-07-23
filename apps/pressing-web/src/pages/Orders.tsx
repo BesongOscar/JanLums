@@ -1,31 +1,14 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useToast } from '../components/ui/Toast';
-
-const orders = [
-  { id: 'ORD-001', customer: 'Jean Dupont', items: 5, status: 'Processing', total: 12500, date: '2024-01-15', phone: '+237 612 345 678' },
-  { id: 'ORD-002', customer: 'Marie Claire', items: 3, status: 'Ready', total: 8000, date: '2024-01-15', phone: '+237 623 456 789' },
-  { id: 'ORD-003', customer: 'Paul Martin', items: 8, status: 'Pending', total: 20000, date: '2024-01-14', phone: '+237 634 567 890' },
-  { id: 'ORD-004', customer: 'Sarah Johnson', items: 2, status: 'Completed', total: 5500, date: '2024-01-14', phone: '+237 645 678 901' },
-  { id: 'ORD-005', customer: 'Michel Brown', items: 6, status: 'Processing', total: 15000, date: '2024-01-13', phone: '+237 656 789 012' },
-  { id: 'ORD-006', customer: 'Alice Kamga', items: 4, status: 'Pending', total: 9800, date: '2024-01-13', phone: '+237 667 890 123' },
-  { id: 'ORD-007', customer: 'Bob Nkwi', items: 7, status: 'Ready', total: 18200, date: '2024-01-12', phone: '+237 678 901 234' },
-  { id: 'ORD-008', customer: 'Claire Atangana', items: 3, status: 'Completed', total: 7200, date: '2024-01-12', phone: '+237 689 012 345' },
-];
-
-const statusPills = [
-  { label: 'All', count: 156, color: 'primary' },
-  { label: 'Pending', count: 23, color: 'warning' },
-  { label: 'Processing', count: 45, color: 'info' },
-  { label: 'Ready', count: 38, color: 'success' },
-  { label: 'Completed', count: 50, color: 'danger' },
-];
+import { useAuth } from '../contexts/AuthContext';
+import { useOrders, useOrderStats } from '../hooks/useOrders';
+import { LoadingState } from '../components/ui/States';
 
 const statusStyles: Record<string, string> = {
-  Processing: 'bg-warning-100 text-warning-700',
-  Ready: 'bg-success-100 text-success-700',
-  Pending: 'bg-warning-100 text-warning-700',
-  Completed: 'bg-success-100 text-success-700',
+  pending: 'bg-warning-100 text-warning-700',
+  processing: 'bg-warning-100 text-warning-700',
+  ready: 'bg-success-100 text-success-700',
+  completed: 'bg-success-100 text-success-700',
 };
 
 const colorMap: Record<string, string> = {
@@ -44,26 +27,50 @@ const dimMap: Record<string, string> = {
   danger: 'bg-danger/60 text-danger',
 };
 
-type QuickAction = 'receive' | 'tag' | 'status' | null;
-
 export default function Orders() {
   const navigate = useNavigate();
-  const { showToast } = useToast();
+  const { user } = useAuth();
+  const tenantId = user?.tenantId || '';
+  const { data: ordersData, isLoading: ordersLoading } = useOrders(tenantId);
+  const { data: stats, isLoading: statsLoading } = useOrderStats(tenantId);
   const [activePill, setActivePill] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
-  const [activeAction, setActiveAction] = useState<QuickAction>(null);
+
+  const isLoading = ordersLoading || statsLoading;
+
+  const orders = useMemo(() => {
+    const list = Array.isArray(ordersData) ? ordersData : [];
+    return list.filter((o: any) => {
+      const matchesSearch = !searchTerm || 
+        o.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        `${o.customer?.firstName || ''} ${o.customer?.lastName || ''}`.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'All Status' || o.status === statusFilter.toLowerCase();
+      return matchesSearch && matchesStatus;
+    });
+  }, [ordersData, searchTerm, statusFilter]);
+
+  const statusPills = useMemo(() => {
+    const counts = stats || {};
+    return [
+      { label: 'All', count: counts.totalOrders ?? 0, color: 'primary' },
+      { label: 'Pending', count: counts.pendingOrders ?? 0, color: 'warning' },
+      { label: 'Processing', count: counts.processingOrders ?? 0, color: 'info' },
+      { label: 'Ready', count: counts.readyOrders ?? 0, color: 'success' },
+      { label: 'Completed', count: counts.completedOrders ?? 0, color: 'danger' },
+    ];
+  }, [stats]);
 
   const getStatusClass = (status: string) =>
     statusStyles[status] || 'bg-neutral-100 text-neutral-600';
 
-  const handleQuickAction = (orderId: string, action: QuickAction) => {
-    setActiveAction(action);
-    setTimeout(() => {
-      showToast(`${action === 'receive' ? 'Received' : action === 'tag' ? 'Tagged' : 'Status updated'} — ${orderId}`, 'success');
-      setActiveAction(null);
-    }, 300);
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingState />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -122,7 +129,7 @@ export default function Orders() {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-neutral-50">
-              {['Order ID', 'Customer', 'Items', 'Status', 'Total', 'Date', 'Quick Actions', ''].map((header) => (
+              {['Order ID', 'Customer', 'Items', 'Status', 'Total', 'Date', ''].map((header) => (
                 <th key={header} className="px-6 py-3 text-left font-bold text-primary border-b-2 border-neutral-200 text-sm">
                   {header}
                 </th>
@@ -130,66 +137,47 @@ export default function Orders() {
             </tr>
           </thead>
           <tbody>
-            {orders.map((order, index) => (
-              <tr
-                key={order.id}
-                className={`${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'} hover:bg-primary-50 transition-colors`}
-              >
-                <td className="px-6 py-3 border-b border-neutral-200 font-medium">{order.id}</td>
-                <td className="px-6 py-3 border-b border-neutral-200">
-                  <div>{order.customer}</div>
-                  <div className="text-xs text-neutral-400">{order.phone}</div>
-                </td>
-                <td className="px-6 py-3 border-b border-neutral-200">{order.items}</td>
-                <td className="px-6 py-3 border-b border-neutral-200">
-                  <span className={`status-pill ${getStatusClass(order.status)}`}>
-                    {order.status}
-                  </span>
-                </td>
-                <td className="px-6 py-3 border-b border-neutral-200">{order.total.toLocaleString()} FCFA</td>
-                <td className="px-6 py-3 border-b border-neutral-200 text-neutral-500">{order.date}</td>
-                <td className="px-6 py-3 border-b border-neutral-200">
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => handleQuickAction(order.id, 'receive')}
-                      disabled={activeAction !== null}
-                      className="px-2 py-1 text-xs border border-info rounded bg-info/10 text-info cursor-pointer hover:bg-info/20 disabled:opacity-40"
-                      title="Receive order"
-                    >
-                      Receive
-                    </button>
-                    <button
-                      onClick={() => handleQuickAction(order.id, 'tag')}
-                      disabled={activeAction !== null}
-                      className="px-2 py-1 text-xs border border-warning rounded bg-warning/10 text-warning cursor-pointer hover:bg-warning/20 disabled:opacity-40"
-                      title="Tag garments"
-                    >
-                      Tag
-                    </button>
-                    <button
-                      onClick={() => handleQuickAction(order.id, 'status')}
-                      disabled={activeAction !== null}
-                      className="px-2 py-1 text-xs border border-primary rounded bg-primary/10 text-primary cursor-pointer hover:bg-primary/20 disabled:opacity-40"
-                      title="Update status"
-                    >
-                      Status
-                    </button>
-                  </div>
-                </td>
-                <td className="px-6 py-3 border-b border-neutral-200">
-                  <button
-                    onClick={() => navigate(`/orders/${order.id}`)}
-                    className="px-3 py-1 border border-primary rounded bg-white text-primary cursor-pointer text-xs hover:bg-primary-50"
-                  >
-                    View
-                  </button>
-                </td>
+            {orders.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-12 text-center text-sm text-neutral-400">No orders found</td>
               </tr>
-            ))}
+            ) : (
+              orders.map((order: any, index: number) => (
+                <tr
+                  key={order.id}
+                  className={`${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'} hover:bg-primary-50 transition-colors cursor-pointer`}
+                  onClick={() => navigate(`/orders/${order.id}`)}
+                >
+                  <td className="px-6 py-3 border-b border-neutral-200 font-medium">{order.id?.slice(0, 8)}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200">
+                    <div>{order.customer?.firstName} {order.customer?.lastName}</div>
+                    <div className="text-xs text-neutral-400">{order.customer?.phone || order.staff?.phone || ''}</div>
+                  </td>
+                  <td className="px-6 py-3 border-b border-neutral-200">{order.items?.length || 0}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200">
+                    <span className={`status-pill ${getStatusClass(order.status)}`}>
+                      {order.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3 border-b border-neutral-200">{Number(order.total).toLocaleString()} FCFA</td>
+                  <td className="px-6 py-3 border-b border-neutral-200 text-neutral-500">
+                    {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}
+                  </td>
+                  <td className="px-6 py-3 border-b border-neutral-200">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); navigate(`/orders/${order.id}`); }}
+                      className="px-3 py-1 border border-primary rounded bg-white text-primary cursor-pointer text-xs hover:bg-primary-50"
+                    >
+                      View
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
         <div className="px-6 py-4 border-t border-neutral-200 flex items-center justify-between text-sm text-neutral-500">
-          <span>Showing 1–8 of 156 orders</span>
+          <span>Showing {orders.length} of {statusPills.find(p => p.label === 'All')?.count || orders.length} orders</span>
           <div className="flex gap-2">
             <button className="px-3 py-1 border border-neutral-300 rounded bg-white cursor-pointer text-xs disabled:opacity-40" disabled>Prev</button>
             <button className="px-3 py-1 border border-neutral-300 rounded bg-white cursor-pointer text-xs">Next</button>

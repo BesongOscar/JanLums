@@ -1,13 +1,6 @@
 import { useState } from 'react';
-
-const attendance = [
-  { id: 'ATN-001', employee: 'Alice Nkwi', role: 'Counter Agent', date: '2024-01-15', checkIn: '05:55', checkOut: '', status: 'Present', hours: '7.5', overtime: '0' },
-  { id: 'ATN-002', employee: 'David Kamga', role: 'Washer', date: '2024-01-15', checkIn: '06:10', checkOut: '', status: 'Present', hours: '7.0', overtime: '0' },
-  { id: 'ATN-003', employee: 'Emma Biya', role: 'Presser', date: '2024-01-15', checkIn: '07:50', checkOut: '', status: 'Present', hours: '7.5', overtime: '0' },
-  { id: 'ATN-004', employee: 'Paul Ebode', role: 'QC Inspector', date: '2024-01-15', checkIn: '—', checkOut: '—', status: 'Scheduled', hours: '0', overtime: '0' },
-  { id: 'ATN-005', employee: 'Sarah Mengue', role: 'Branch Manager', date: '2024-01-15', checkIn: '07:45', checkOut: '', status: 'Present', hours: '8.0', overtime: '0.5' },
-  { id: 'ATN-006', employee: 'John Takam', role: 'Driver', date: '2024-01-15', checkIn: '—', checkOut: '—', status: 'Absent', hours: '0', overtime: '0' },
-];
+import { useAuth } from '../../contexts/AuthContext';
+import { useAttendance } from '../../hooks/useEmployees';
 
 const statusStyles: Record<string, string> = {
   Present: 'bg-success-100 text-success-700',
@@ -16,10 +9,15 @@ const statusStyles: Record<string, string> = {
 };
 
 export default function Attendance() {
-  const [date, setDate] = useState('2024-01-15');
+  const { user } = useAuth();
+  const tenantId = user?.tenantId || '';
+  const today = new Date().toISOString().split('T')[0];
+  const [date, setDate] = useState(today);
 
-  const present = attendance.filter(a => a.status === 'Present').length;
-  const absent = attendance.filter(a => a.status === 'Absent').length;
+  const { data: attendance = [], isLoading } = useAttendance(tenantId, date);
+
+  const present = attendance.filter((a: any) => a.status === 'Present').length;
+  const absent = attendance.filter((a: any) => a.status === 'Absent').length;
   const total = attendance.length;
 
   return (
@@ -49,34 +47,41 @@ export default function Attendance() {
         </div>
       </div>
 
-      <div className="data-table">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-neutral-50">
-              {['Employee', 'Role', 'Check-In', 'Check-Out', 'Hours', 'Overtime', 'Status'].map(h => (
-                <th key={h} className="px-6 py-3 text-left font-bold text-primary border-b-2 border-neutral-200">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {attendance.map((a, i) => (
-              <tr key={a.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-neutral-50'} hover:bg-primary-50 transition-colors`}>
-                <td className="px-6 py-3 border-b border-neutral-200 font-medium">{a.employee}</td>
-                <td className="px-6 py-3 border-b border-neutral-200 text-neutral-600">{a.role}</td>
-                <td className="px-6 py-3 border-b border-neutral-200">{a.checkIn}</td>
-                <td className="px-6 py-3 border-b border-neutral-200">{a.checkOut || '—'}</td>
-                <td className="px-6 py-3 border-b border-neutral-200 font-bold">{a.hours}</td>
-                <td className="px-6 py-3 border-b border-neutral-200">
-                  {a.overtime !== '0' ? <span className="text-warning font-bold">{a.overtime}h</span> : '—'}
-                </td>
-                <td className="px-6 py-3 border-b border-neutral-200">
-                  <span className={`status-pill text-xs ${statusStyles[a.status]}`}>{a.status}</span>
-                </td>
+      {isLoading ? (
+        <div className="p-6 text-center text-neutral-500">Loading attendance...</div>
+      ) : (
+        <div className="data-table">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="bg-neutral-50">
+                {['Employee', 'Role', 'Check-In', 'Check-Out', 'Hours', 'Overtime', 'Status'].map(h => (
+                  <th key={h} className="px-6 py-3 text-left font-bold text-primary border-b-2 border-neutral-200">{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {attendance.map((a: any, i: number) => (
+                <tr key={a.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-neutral-50'} hover:bg-primary-50 transition-colors`}>
+                  <td className="px-6 py-3 border-b border-neutral-200 font-medium">{a.employeeName || '\u2014'}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200 text-neutral-600">{a.employeeRole || '\u2014'}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200">{a.checkIn || '\u2014'}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200">{a.checkOut || '\u2014'}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200 font-bold">{a.hours}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200">
+                    {Number(a.overtime) > 0 ? <span className="text-warning font-bold">{a.overtime}h</span> : '\u2014'}
+                  </td>
+                  <td className="px-6 py-3 border-b border-neutral-200">
+                    <span className={`status-pill text-xs ${statusStyles[a.status] || ''}`}>{a.status}</span>
+                  </td>
+                </tr>
+              ))}
+              {attendance.length === 0 && (
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-neutral-400">No attendance records for this date</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

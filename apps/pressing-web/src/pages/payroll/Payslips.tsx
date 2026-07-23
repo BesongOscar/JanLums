@@ -1,14 +1,7 @@
 import { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { usePayslips, usePayrollPeriods } from '../../hooks/usePayroll';
 import { useToast } from '../../components/ui/Toast';
-
-const payslips = [
-  { id: 'PS-001', employee: 'Alice Nkwi', role: 'Counter Agent', period: 'December 2023', gross: 350000, deductions: 35000, net: 315000, status: 'Paid', date: '2024-01-05' },
-  { id: 'PS-002', employee: 'David Kamga', role: 'Washer', period: 'December 2023', gross: 400000, deductions: 40000, net: 360000, status: 'Paid', date: '2024-01-05' },
-  { id: 'PS-003', employee: 'Emma Biya', role: 'Presser', period: 'December 2023', gross: 350000, deductions: 35000, net: 315000, status: 'Paid', date: '2024-01-05' },
-  { id: 'PS-004', employee: 'Paul Ebode', role: 'QC Inspector', period: 'December 2023', gross: 380000, deductions: 38000, net: 342000, status: 'Paid', date: '2024-01-05' },
-  { id: 'PS-005', employee: 'Sarah Mengue', role: 'Branch Manager', period: 'December 2023', gross: 600000, deductions: 75000, net: 525000, status: 'Paid', date: '2024-01-05' },
-  { id: 'PS-006', employee: 'John Takam', role: 'Driver', period: 'December 2023', gross: 300000, deductions: 30000, net: 270000, status: 'Paid', date: '2024-01-05' },
-];
 
 const statusStyles: Record<string, string> = {
   Paid: 'bg-success-100 text-success-700',
@@ -16,50 +9,67 @@ const statusStyles: Record<string, string> = {
 };
 
 export default function Payslips() {
+  const { user } = useAuth();
+  const tenantId = user?.tenantId || '';
   const { showToast } = useToast();
-  const [period, setPeriod] = useState('December 2023');
+  const [periodId, setPeriodId] = useState('');
+
+  const { data: periods = [] } = usePayrollPeriods(tenantId);
+  const { data: payslips = [], isLoading } = usePayslips(tenantId, periodId || undefined);
+
+  const safePayslips = Array.isArray(payslips) ? payslips : [];
 
   return (
     <div>
       <div className="page-chrome">
         <h1 className="page-title">Payslips</h1>
-        <select value={period} onChange={e => setPeriod(e.target.value)}
+        <select value={periodId} onChange={e => setPeriodId(e.target.value)}
           className="px-3 py-2 border border-neutral-300 rounded text-sm">
-          <option>December 2023</option>
-          <option>November 2023</option>
+          <option value="">All periods</option>
+          {periods.map((p: any) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
         </select>
       </div>
 
-      <div className="data-table mt-6">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-neutral-50">
-              {['Employee', 'Role', 'Gross', 'Deductions', 'Net Pay', 'Status', 'Paid Date', ''].map(h => (
-                <th key={h} className="px-6 py-3 text-left font-bold text-primary border-b-2 border-neutral-200">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {payslips.map((p, i) => (
-              <tr key={p.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-neutral-50'} hover:bg-primary-50 transition-colors`}>
-                <td className="px-6 py-3 border-b border-neutral-200 font-medium">{p.employee}</td>
-                <td className="px-6 py-3 border-b border-neutral-200 text-neutral-600">{p.role}</td>
-                <td className="px-6 py-3 border-b border-neutral-200">{p.gross.toLocaleString()} FCFA</td>
-                <td className="px-6 py-3 border-b border-neutral-200 text-danger">{p.deductions.toLocaleString()} FCFA</td>
-                <td className="px-6 py-3 border-b border-neutral-200 font-bold text-primary">{p.net.toLocaleString()} FCFA</td>
-                <td className="px-6 py-3 border-b border-neutral-200">
-                  <span className={`status-pill text-xs ${statusStyles[p.status]}`}>{p.status}</span>
-                </td>
-                <td className="px-6 py-3 border-b border-neutral-200 text-neutral-500">{p.date}</td>
-                <td className="px-6 py-3 border-b border-neutral-200">
-                  <button onClick={() => showToast(`Downloading PDF for ${p.employee}`, 'success')}
-                    className="px-3 py-1 border border-primary rounded bg-white text-primary cursor-pointer text-xs hover:bg-primary-50">PDF</button>
-                </td>
+      {isLoading ? (
+        <div className="p-6 text-center text-neutral-500">Loading payslips...</div>
+      ) : (
+        <div className="data-table mt-6">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="bg-neutral-50">
+                {['Employee', 'Role', 'Period', 'Gross', 'Deductions', 'Net Pay', 'Status', 'Paid Date', ''].map(h => (
+                  <th key={h} className="px-6 py-3 text-left font-bold text-primary border-b-2 border-neutral-200">{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {safePayslips.map((p: any, i: number) => (
+                <tr key={p.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-neutral-50'} hover:bg-primary-50 transition-colors`}>
+                  <td className="px-6 py-3 border-b border-neutral-200 font-medium">{p.employeeName || '\u2014'}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200 text-neutral-600">{p.employeeRole || '\u2014'}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200 text-neutral-500">{p.periodName || '\u2014'}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200">{Number(p.grossPay).toLocaleString()} FCFA</td>
+                  <td className="px-6 py-3 border-b border-neutral-200 text-danger">{Number(p.deductions).toLocaleString()} FCFA</td>
+                  <td className="px-6 py-3 border-b border-neutral-200 font-bold text-primary">{Number(p.netPay).toLocaleString()} FCFA</td>
+                  <td className="px-6 py-3 border-b border-neutral-200">
+                    <span className={`status-pill text-xs ${statusStyles[p.status] || ''}`}>{p.status}</span>
+                  </td>
+                  <td className="px-6 py-3 border-b border-neutral-200 text-neutral-500">{p.paidDate || '\u2014'}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200">
+                    <button onClick={() => showToast(`Downloading PDF for ${p.employeeName}`, 'success')}
+                      className="px-3 py-1 border border-primary rounded bg-white text-primary cursor-pointer text-xs hover:bg-primary-50">PDF</button>
+                  </td>
+                </tr>
+              ))}
+              {safePayslips.length === 0 && (
+                <tr><td colSpan={9} className="px-6 py-8 text-center text-neutral-400">No payslips found</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

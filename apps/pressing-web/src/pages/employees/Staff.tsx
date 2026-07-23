@@ -1,15 +1,7 @@
 import { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useEmployees, useCreateEmployee } from '../../hooks/useEmployees';
 import { useToast } from '../../components/ui/Toast';
-
-const staff = [
-  { id: 'EMP-001', name: 'Alice Nkwi', role: 'Counter Agent', department: 'Front Desk', branch: 'Yaounde Main', status: 'Active', phone: '+237 612 345 678', startDate: '2023-06' },
-  { id: 'EMP-002', name: 'David Kamga', role: 'Washer', department: 'Processing', branch: 'Yaounde Main', status: 'Active', phone: '+237 623 456 789', startDate: '2023-06' },
-  { id: 'EMP-003', name: 'Emma Biya', role: 'Presser', department: 'Finishing', branch: 'Yaounde Main', status: 'Active', phone: '+237 634 567 890', startDate: '2023-08' },
-  { id: 'EMP-004', name: 'Paul Ebode', role: 'QC Inspector', department: 'Quality', branch: 'Yaounde Main', status: 'Active', phone: '+237 645 678 901', startDate: '2023-09' },
-  { id: 'EMP-005', name: 'Sarah Mengue', role: 'Branch Manager', department: 'Management', branch: 'Yaounde Main', status: 'Active', phone: '+237 656 789 012', startDate: '2023-01' },
-  { id: 'EMP-006', name: 'John Takam', role: 'Driver', department: 'Delivery', branch: 'Douala Central', status: 'Active', phone: '+237 667 890 123', startDate: '2023-11' },
-  { id: 'EMP-007', name: 'Rose Atangana', role: 'Counter Agent', department: 'Front Desk', branch: 'Douala Central', status: 'Inactive', phone: '+237 678 901 234', startDate: '2024-01' },
-];
 
 const statusStyles: Record<string, string> = {
   Active: 'bg-success-100 text-success-700',
@@ -17,15 +9,33 @@ const statusStyles: Record<string, string> = {
 };
 
 export default function Staff() {
+  const { user } = useAuth();
+  const tenantId = user?.tenantId || '';
   const { showToast } = useToast();
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
 
-  const filtered = staff.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.role.toLowerCase().includes(search.toLowerCase()) ||
-    s.department.toLowerCase().includes(search.toLowerCase())
+  const { data: employees = [], isLoading } = useEmployees(tenantId);
+  const createEmployee = useCreateEmployee();
+
+  const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', role: '', department: '', branch: '' });
+
+  const filtered = employees.filter((e: any) =>
+    `${e.firstName} ${e.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
+    e.role.toLowerCase().includes(search.toLowerCase()) ||
+    e.department.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleCreate = async () => {
+    try {
+      await createEmployee.mutateAsync({ ...form, tenantId, status: 'Active' });
+      showToast('Employee added', 'success');
+      setShowAdd(false);
+      setForm({ firstName: '', lastName: '', phone: '', role: '', department: '', branch: '' });
+    } catch {
+      showToast('Failed to add employee', 'error');
+    }
+  };
 
   return (
     <div>
@@ -42,33 +52,40 @@ export default function Staff() {
         </div>
       </div>
 
-      <div className="data-table">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-neutral-50">
-              {['ID', 'Name', 'Role', 'Department', 'Branch', 'Phone', 'Since', 'Status'].map(h => (
-                <th key={h} className="px-6 py-3 text-left font-bold text-primary border-b-2 border-neutral-200">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((e, i) => (
-              <tr key={e.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-neutral-50'} hover:bg-primary-50 transition-colors`}>
-                <td className="px-6 py-3 border-b border-neutral-200 font-medium">{e.id}</td>
-                <td className="px-6 py-3 border-b border-neutral-200 font-medium">{e.name}</td>
-                <td className="px-6 py-3 border-b border-neutral-200">{e.role}</td>
-                <td className="px-6 py-3 border-b border-neutral-200 text-neutral-600">{e.department}</td>
-                <td className="px-6 py-3 border-b border-neutral-200">{e.branch}</td>
-                <td className="px-6 py-3 border-b border-neutral-200 text-neutral-600">{e.phone}</td>
-                <td className="px-6 py-3 border-b border-neutral-200 text-neutral-500">{e.startDate}</td>
-                <td className="px-6 py-3 border-b border-neutral-200">
-                  <span className={`status-pill text-xs ${statusStyles[e.status]}`}>{e.status}</span>
-                </td>
+      {isLoading ? (
+        <div className="p-6 text-center text-neutral-500">Loading employees...</div>
+      ) : (
+        <div className="data-table">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="bg-neutral-50">
+                {['ID', 'Name', 'Role', 'Department', 'Branch', 'Phone', 'Since', 'Status'].map(h => (
+                  <th key={h} className="px-6 py-3 text-left font-bold text-primary border-b-2 border-neutral-200">{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {filtered.map((e: any, i: number) => (
+                <tr key={e.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-neutral-50'} hover:bg-primary-50 transition-colors`}>
+                  <td className="px-6 py-3 border-b border-neutral-200 font-medium">{e.id.slice(0, 8)}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200 font-medium">{e.firstName} {e.lastName}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200">{e.role}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200 text-neutral-600">{e.department}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200">{e.branch}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200 text-neutral-600">{e.phone}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200 text-neutral-500">{e.startDate || '\u2014'}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200">
+                    <span className={`status-pill text-xs ${statusStyles[e.status] || ''}`}>{e.status}</span>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan={8} className="px-6 py-8 text-center text-neutral-400">No employees found</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -79,17 +96,45 @@ export default function Staff() {
                 className="text-neutral-400 hover:text-neutral-600 text-xl leading-none border-none bg-transparent cursor-pointer">&times;</button>
             </div>
             <div className="space-y-4">
-              {['Full Name', 'Phone', 'Role', 'Department', 'Branch'].map(f => (
-                <div key={f}>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">{f}</label>
-                  <input className="w-full px-3 py-2 border border-neutral-300 rounded text-sm" placeholder={f} />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1">First Name</label>
+                  <input className="w-full px-3 py-2 border border-neutral-300 rounded text-sm" placeholder="First name"
+                    value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })} />
                 </div>
-              ))}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1">Last Name</label>
+                  <input className="w-full px-3 py-2 border border-neutral-300 rounded text-sm" placeholder="Last name"
+                    value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Phone</label>
+                <input className="w-full px-3 py-2 border border-neutral-300 rounded text-sm" placeholder="+237 6XX XXX XXX"
+                  value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1">Role</label>
+                  <input className="w-full px-3 py-2 border border-neutral-300 rounded text-sm" placeholder="e.g., Washer"
+                    value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1">Department</label>
+                  <input className="w-full px-3 py-2 border border-neutral-300 rounded text-sm" placeholder="e.g., Processing"
+                    value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Branch</label>
+                <input className="w-full px-3 py-2 border border-neutral-300 rounded text-sm" placeholder="e.g., Yaounde Main"
+                  value={form.branch} onChange={e => setForm({ ...form, branch: e.target.value })} />
+              </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">
               <button onClick={() => setShowAdd(false)}
                 className="px-4 py-2 border border-neutral-300 rounded text-sm bg-white cursor-pointer hover:bg-neutral-50">Cancel</button>
-              <button onClick={() => { showToast('Employee added', 'success'); setShowAdd(false); }}
+              <button onClick={handleCreate}
                 className="px-4 py-2 bg-primary text-white rounded text-sm font-bold border-none cursor-pointer hover:bg-primary-dark">Add</button>
             </div>
           </div>

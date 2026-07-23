@@ -1,18 +1,15 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useServices } from '../hooks/useServices';
+import { useCreateOrder } from '../hooks/useOrders';
+import { useSearchCustomers } from '../hooks/useCustomers';
 import { useToast } from '../components/ui/Toast';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
-const serviceOptions = [
-  { name: 'Wash & Fold', price: 500 },
-  { name: 'Dry Cleaning', price: 1500 },
-  { name: 'Ironing / Pressing', price: 300 },
-  { name: 'Stain Removal', price: 1000 },
-];
-
-const garmentOptions = ['Shirt', 'Trouser', 'Suit', 'Dress', 'Jacket', 'Blouse', 'Skirt', ' coat', 'Uniform', 'Other'];
+const garmentOptions = ['Shirt', 'Trouser', 'Suit', 'Dress', 'Jacket', 'Blouse', 'Skirt', 'Coat', 'Uniform', 'Other'];
 
 const orderSchema = z.object({
   customerName: z.string().min(1, 'Customer name is required'),
@@ -37,9 +34,26 @@ const defaultItem = { garmentType: '', service: '', quantity: 1, unitPrice: 0 };
 
 export default function CreateOrder() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const tenantId = user?.tenantId || '';
+  const { data: servicesData } = useServices(tenantId);
+  const createOrder = useCreateOrder();
   const { showToast } = useToast();
   const [step, setStep] = useState(1);
   const [customerSearch, setCustomerSearch] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const serviceOptions = useMemo(() => {
+    if (Array.isArray(servicesData)) {
+      return servicesData.map((s: any) => ({
+        name: s.name,
+        price: Number(s.price ?? s.unitPrice ?? 0),
+      }));
+    }
+    return [];
+  }, [servicesData]);
+
+  const { data: searchResults } = useSearchCustomers(tenantId, customerSearch);
 
   const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm<OrderFormData>({
     resolver: zodResolver(orderSchema),
@@ -67,12 +81,39 @@ export default function CreateOrder() {
   };
 
   const total = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-
   const totalItems = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
 
-  const onSubmit = (data: OrderFormData) => {
-    showToast(`Order created for ${data.customerName} — ${total.toLocaleString()} FCFA`, 'success');
-    navigate('/orders');
+  const handleSelectCustomer = (name: string, phone: string) => {
+    setValue('customerName', name);
+    setValue('customerPhone', phone);
+    setCustomerSearch('');
+  };
+
+  const onSubmit = async (data: OrderFormData) => {
+    setSubmitting(true);
+    try {
+      const [firstName, ...lastParts] = data.customerName.trim().split(' ');
+      await createOrder.mutateAsync({
+        customer: { firstName, lastName: lastParts.join(' ') || firstName },
+        items: data.items.map((item) => ({
+          garmentType: item.garmentType,
+          serviceName: item.service,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
+        isExpress: data.isExpress || false,
+        notes: data.notes || '',
+        paymentMethod: data.paymentMethod,
+        deliveryMethod: data.deliveryMethod,
+        tenantId,
+      });
+      showToast(`Order created — ${total.toLocaleString()} FCFA`, 'success');
+      navigate('/orders');
+    } catch {
+      showToast('Failed to create order', 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const totalSteps = 4;
@@ -128,16 +169,17 @@ export default function CreateOrder() {
                 placeholder="Type name or phone..."
                 className="w-full px-3 py-2 border border-neutral-300 rounded text-sm"
               />
-              {customerSearch && (
+              {customerSearch && searchResults && Array.isArray(searchResults) && searchResults.length > 0 && (
                 <div className="mt-2 border border-neutral-200 rounded bg-white shadow-sm">
-                  <div className="px-4 py-3 cursor-pointer hover:bg-primary-50 border-b border-neutral-100">
-                    <div className="text-sm font-medium">Jean Dupont</div>
-                    <div className="text-xs text-neutral-500">+237 612 345 678</div>
-                  </div>
-                  <div className="px-4 py-3 cursor-pointer hover:bg-primary-50">
-                    <div className="text-sm font-medium">Marie Claire</div>
-                    <div className="text-xs text-neutral-500">+237 623 456 789</div>
-                  </div>
+                  {searchResults.slice(0, 5).map((c: any) => (
+                    <div key={c.id}
+                      onClick={() => handleSelectCustomer(`${c.firstName || ''} ${c.lastName || ''}`.trim(), c.phone || '')}
+                      className="px-4 py-3 cursor-pointer hover:bg-primary-50 border-b border-neutral-100 last:border-b-0"
+                    >
+                      <div className="text-sm font-medium">{c.firstName} {c.lastName}</div>
+                      <div className="text-xs text-neutral-500">{c.phone}</div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -371,7 +413,11 @@ export default function CreateOrder() {
                 <h3 className="text-sm font-bold text-neutral-700 mb-3">Delivery & Payment</h3>
                 <div className="space-y-2 text-sm">
                   <p><span className="text-neutral-500">Delivery:</span> {watch('deliveryMethod') === 'pickup' ? 'Customer Pickup' : 'Home Delivery'}</p>
-                  <p><span className="text-neutral-500">Payment:</span> {watch('paymentMethod') === 'cash' ? 'Cash' : watch('paymentMethod') === 'mtn' ? 'MTN Mobile Money' : watch('paymentMethod') === 'orange' ? 'Orange Money' : 'Card'}</p>
+                  <p><span className="text-neutral-500">Payment:</span> {
+                    watch('paymentMethod') === 'cash' ? 'Cash' :
+                    watch('paymentMethod') === 'mtn' ? 'MTN Mobile Money' :
+                    watch('paymentMethod') === 'orange' ? 'Orange Money' : 'Card'
+                  }</p>
                   <p><span className="text-neutral-500">Express:</span> {watch('isExpress') ? 'Yes' : 'No'}</p>
                 </div>
               </div>
@@ -435,9 +481,10 @@ export default function CreateOrder() {
             ) : (
               <button
                 type="submit"
-                className="px-8 py-2 text-sm font-bold text-white bg-success rounded hover:bg-success-dark border-none cursor-pointer"
+                disabled={submitting}
+                className="px-8 py-2 text-sm font-bold text-white bg-success rounded hover:bg-success-dark border-none cursor-pointer disabled:opacity-40"
               >
-                Create Order
+                {submitting ? 'Creating...' : 'Create Order'}
               </button>
             )}
           </div>

@@ -6,7 +6,7 @@ export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ tenantSlug: '', email: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -23,11 +23,12 @@ export default function Login() {
       });
 
       if (!res.ok) {
-        throw new Error('Invalid email or password');
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.message || 'Invalid email or password');
       }
 
       const data = await res.json();
-      login(data.accessToken);
+      login(data.accessToken, data.user, formData.tenantSlug);
       navigate('/');
     } catch (err: any) {
       setError(err.message || 'Login failed');
@@ -40,10 +41,10 @@ export default function Login() {
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-5">
       <div className="max-w-sm w-full bg-white rounded-lg shadow-lg p-10">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-xl">P237</span>
+          <div className="w-20 h-20 bg-primary rounded-xl flex items-center justify-center mx-auto mb-4">
+            <span className="text-white font-bold text-xl"></span>
           </div>
-          <h2 className="text-2xl font-bold text-neutral-800 mb-1">Pressing 237</h2>
+          <h2 className="text-2xl font-bold text-neutral-800 mb-1">JanLums</h2>
           <p className="text-sm text-neutral-500">Sign in to your account</p>
         </div>
 
@@ -53,6 +54,17 @@ export default function Login() {
               {error}
             </div>
           )}
+
+          <div className="mb-5">
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">Tenant Slug</label>
+            <input
+              type="text" required
+              value={formData.tenantSlug}
+              onChange={(e) => setFormData({ ...formData, tenantSlug: e.target.value })}
+              placeholder="Enter your tenant slug"
+              className="w-full px-3.5 py-2.5 border border-neutral-300 rounded text-sm outline-none focus:border-primary transition-colors"
+            />
+          </div>
 
           <div className="mb-5">
             <label className="block text-sm font-medium text-neutral-700 mb-1.5">Email address</label>

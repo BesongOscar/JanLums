@@ -1,32 +1,44 @@
+import { useParams, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useGarmentById } from '../hooks/useLots';
 import { useToast } from '../components/ui/Toast';
 
-const garment = {
-  id: 'GRM-001', item: 'Shirt', service: 'Wash & Fold', status: 'Washing',
-  orderId: 'ORD-002', lotId: 'LOT-001', customer: 'Marie Claire',
-  location: 'Washer 2', rack: 'A-12', qrCode: 'GRM-001-20240115',
-  notes: 'Delicate fabric — use cold water',
-  timeline: [
-    { status: 'received', label: 'Received', timestamp: '2024-01-15 08:30', actor: 'Counter: Alice', active: false },
-    { status: 'in_wash', label: 'Washing Started', timestamp: '2024-01-15 09:15', actor: 'Washer: David', active: true },
-  ],
+const statusStyles: Record<string, string> = {
+  Washing: 'bg-info-100 text-info-700',
+  Pressing: 'bg-warning-100 text-warning-700',
+  Pending: 'bg-neutral-100 text-neutral-600',
+  'QC Check': 'bg-warning-100 text-warning-700',
+  Rewash: 'bg-danger-100 text-danger-700',
+  Completed: 'bg-success-100 text-success-700',
 };
 
 export default function GarmentDetail() {
+  const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const tenantId = user?.tenantId || '';
   const { showToast } = useToast();
   const [showQc, setShowQc] = useState(false);
   const [qcResult, setQcResult] = useState<'pass' | 'fail' | null>(null);
   const [damageNote, setDamageNote] = useState('');
 
+  const { data: garment, isLoading } = useGarmentById(id || '', tenantId);
+
+  if (isLoading) return <div className="p-6 text-center text-neutral-500">Loading garment...</div>;
+  if (!garment) return <div className="p-6 text-center text-neutral-500">Garment not found</div>;
+
   const handleQcSubmit = () => {
-    if (qcResult === 'pass') showToast('QC passed — garment moves to next stage', 'success');
+    if (qcResult === 'pass') showToast('QC passed', 'success');
     else if (qcResult === 'fail') showToast(`QC failed — rewash initiated. Note: ${damageNote || 'None'}`, 'error');
     setShowQc(false);
     setQcResult(null);
     setDamageNote('');
   };
+
+  const timeline = [
+    { status: 'received', label: 'Received', timestamp: new Date(garment.createdAt).toLocaleString(), actor: 'System', active: true },
+  ];
 
   return (
     <div>
@@ -34,14 +46,12 @@ export default function GarmentDetail() {
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/garments')}
             className="text-primary hover:text-primary-dark text-sm no-underline bg-transparent border-none cursor-pointer">&larr; Back to Garments</button>
-          <h1 className="page-title">{garment.id} — {garment.item}</h1>
-          <span className="status-pill text-xs bg-info-100 text-info-700">{garment.status}</span>
+          <h1 className="page-title">{garment.id.slice(0, 8)} — {garment.name}</h1>
+          <span className={`status-pill text-xs ${statusStyles[garment.status] || 'bg-neutral-100 text-neutral-600'}`}>{garment.status}</span>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowQc(true)}
             className="px-4 py-2 bg-primary text-white rounded text-sm font-bold border-none cursor-pointer hover:bg-primary-dark">QC Checkpoint</button>
-          <button onClick={() => showToast('Rewash requested for ' + garment.id, 'error')}
-            className="px-4 py-2 border border-danger rounded bg-danger/10 text-danger text-sm cursor-pointer hover:bg-danger/20">Request Rewash</button>
         </div>
       </div>
 
@@ -53,9 +63,13 @@ export default function GarmentDetail() {
             </div>
             <div className="p-6 space-y-3 text-sm">
               {[
-                ['Item', garment.item], ['Service', garment.service], ['Order', garment.orderId],
-                ['Lot', garment.lotId], ['Customer', garment.customer], ['Location', garment.location],
-                ['Rack', garment.rack], ['QR Code', garment.qrCode],
+                ['Item', garment.name],
+                ['Service', garment.service],
+                ['Order', garment.orderId ? garment.orderId.slice(0, 8) : '\u2014'],
+                ['Lot', garment.lotId.slice(0, 8)],
+                ['Location', garment.location || '\u2014'],
+                ['Rack', garment.lotRack || garment.rack || '\u2014'],
+                ['QR Code', garment.qrCode || '\u2014'],
               ].map(([l, v]) => (
                 <div key={l}>
                   <div className="text-xs text-neutral-500">{l}</div>
@@ -70,11 +84,6 @@ export default function GarmentDetail() {
               )}
             </div>
           </div>
-
-          <button onClick={() => showToast('QR label printed for ' + garment.id, 'success')}
-            className="w-full px-4 py-3 border border-primary rounded text-primary text-sm font-medium bg-white cursor-pointer hover:bg-primary-50">
-            Print QR Label
-          </button>
         </div>
 
         <div className="col-span-2">
@@ -84,16 +93,13 @@ export default function GarmentDetail() {
             </div>
             <div className="p-6">
               <div className="relative pl-8">
-                {garment.timeline.map((entry, i) => (
+                {timeline.map((entry, i) => (
                   <div key={i} className="relative pb-6 last:pb-0">
                     <div className={`absolute left-0 top-1 w-5 h-5 rounded-full flex items-center justify-center text-xs border-2 ${
                       entry.active ? 'bg-primary border-primary text-white' : 'bg-white border-neutral-300 text-neutral-400'
                     }`}>
                       {i + 1}
                     </div>
-                    {i < garment.timeline.length - 1 && (
-                      <div className={`absolute left-2.5 top-6 w-0.5 h-full -translate-x-1/2 ${entry.active ? 'bg-primary' : 'bg-neutral-200'}`} />
-                    )}
                     <div className="ml-4">
                       <div className="flex items-center gap-3">
                         <span className={`font-semibold text-sm ${entry.active ? 'text-primary' : 'text-neutral-700'}`}>{entry.label}</span>
@@ -113,12 +119,12 @@ export default function GarmentDetail() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-neutral-800">QC Checkpoint — {garment.id}</h2>
+              <h2 className="text-lg font-bold text-neutral-800">QC Checkpoint — {garment.id.slice(0, 8)}</h2>
               <button onClick={() => setShowQc(false)}
                 className="text-neutral-400 hover:text-neutral-600 text-xl leading-none border-none bg-transparent cursor-pointer">&times;</button>
             </div>
             <div className="space-y-4">
-              <p className="text-sm text-neutral-600">Inspect {garment.item} ({garment.service}) for {garment.customer}</p>
+              <p className="text-sm text-neutral-600">Inspect {garment.name} ({garment.service})</p>
               <div className="flex gap-3">
                 <button onClick={() => setQcResult('pass')}
                   className={`flex-1 py-3 rounded text-sm font-bold border-2 cursor-pointer ${qcResult === 'pass' ? 'border-success bg-success-50 text-success' : 'border-neutral-200 bg-white text-neutral-500 hover:border-success'}`}>Pass QC</button>

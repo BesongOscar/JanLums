@@ -1,35 +1,60 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useCustomers, useCreateCustomer } from '../hooks/useCustomers';
 import { useToast } from '../components/ui/Toast';
-
-const customers = [
-  { id: 'CUS-001', name: 'Jean Dupont', phone: '+237 612 345 678', email: 'jean@email.com', orders: 12, totalSpent: 145000, since: '2023-06', status: 'Active' },
-  { id: 'CUS-002', name: 'Marie Claire', phone: '+237 623 456 789', email: 'marie@email.com', orders: 8, totalSpent: 92000, since: '2023-08', status: 'Active' },
-  { id: 'CUS-003', name: 'Paul Martin', phone: '+237 634 567 890', email: 'paul@email.com', orders: 5, totalSpent: 58000, since: '2024-01', status: 'Active' },
-  { id: 'CUS-004', name: 'Sarah Johnson', phone: '+237 645 678 901', email: 'sarah@email.com', orders: 3, totalSpent: 18500, since: '2024-03', status: 'Inactive' },
-  { id: 'CUS-005', name: 'Michel Brown', phone: '+237 656 789 012', email: 'michel@email.com', orders: 15, totalSpent: 210000, since: '2023-01', status: 'Active' },
-  { id: 'CUS-006', name: 'Alice Kamga', phone: '+237 667 890 123', email: 'alice@email.com', orders: 2, totalSpent: 12500, since: '2024-05', status: 'Active' },
-  { id: 'CUS-007', name: 'Bob Nkwi', phone: '+237 678 901 234', email: 'bob@email.com', orders: 7, totalSpent: 89000, since: '2023-11', status: 'Active' },
-];
+import { LoadingState } from '../components/ui/States';
 
 export default function Customers() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const tenantId = user?.tenantId || '';
+  const { data: customersData, isLoading } = useCustomers(tenantId);
+  const createCustomer = useCreateCustomer();
   const { showToast } = useToast();
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', email: '' });
+  const [creating, setCreating] = useState(false);
 
-  const filtered = customers.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.phone.includes(search) ||
-    c.id.toLowerCase().includes(search.toLowerCase())
-  );
+  const customers = useMemo(() => {
+    const list = Array.isArray(customersData) ? customersData : [];
+    return list.filter((c: any) => {
+      const fullName = `${c.firstName || ''} ${c.lastName || ''}`.toLowerCase();
+      const q = search.toLowerCase();
+      return fullName.includes(q) || c.phone?.includes(search) || c.id?.toLowerCase().includes(q);
+    });
+  }, [customersData, search]);
 
-  const handleAdd = () => {
-    showToast(`Customer "${form.name}" created`, 'success');
-    setShowModal(false);
-    setForm({ name: '', phone: '', email: '' });
+  const handleAdd = async () => {
+    if (!form.name || !form.phone) return;
+    setCreating(true);
+    try {
+      const [firstName, ...lastParts] = form.name.trim().split(' ');
+      await createCustomer.mutateAsync({
+        firstName,
+        lastName: lastParts.join(' ') || firstName,
+        phone: form.phone,
+        email: form.email || undefined,
+        tenantId,
+      });
+      showToast(`Customer "${form.name}" created`, 'success');
+      setShowModal(false);
+      setForm({ name: '', phone: '', email: '' });
+    } catch {
+      showToast('Failed to create customer', 'error');
+    } finally {
+      setCreating(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingState />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -70,31 +95,39 @@ export default function Customers() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((c, i) => (
-              <tr key={c.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-neutral-50'} hover:bg-primary-50 transition-colors cursor-pointer`}
-                onClick={() => navigate(`/customers/${c.id}`)}>
-                <td className="px-6 py-3 border-b border-neutral-200 font-medium">{c.id}</td>
-                <td className="px-6 py-3 border-b border-neutral-200">{c.name}</td>
-                <td className="px-6 py-3 border-b border-neutral-200 text-neutral-600">{c.phone}</td>
-                <td className="px-6 py-3 border-b border-neutral-200 text-neutral-600">{c.email}</td>
-                <td className="px-6 py-3 border-b border-neutral-200">{c.orders}</td>
-                <td className="px-6 py-3 border-b border-neutral-200">{c.totalSpent.toLocaleString()} FCFA</td>
-                <td className="px-6 py-3 border-b border-neutral-200 text-neutral-500">{c.since}</td>
-                <td className="px-6 py-3 border-b border-neutral-200">
-                  <span className={`status-pill text-xs ${c.status === 'Active' ? 'bg-success-100 text-success-700' : 'bg-neutral-100 text-neutral-500'}`}>
-                    {c.status}
-                  </span>
-                </td>
-                <td className="px-6 py-3 border-b border-neutral-200">
-                  <button className="px-3 py-1 border border-primary rounded bg-white text-primary cursor-pointer text-xs hover:bg-primary-50"
-                    onClick={(e) => { e.stopPropagation(); navigate(`/customers/${c.id}`); }}>View</button>
-                </td>
+            {customers.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="px-6 py-12 text-center text-sm text-neutral-400">No customers found</td>
               </tr>
-            ))}
+            ) : (
+              customers.map((c: any, i: number) => (
+                <tr key={c.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-neutral-50'} hover:bg-primary-50 transition-colors cursor-pointer`}
+                  onClick={() => navigate(`/customers/${c.id}`)}>
+                  <td className="px-6 py-3 border-b border-neutral-200 font-medium">{c.id?.slice(0, 8)}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200">{c.firstName} {c.lastName}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200 text-neutral-600">{c.phone}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200 text-neutral-600">{c.email}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200">{c.totalOrders ?? 0}</td>
+                  <td className="px-6 py-3 border-b border-neutral-200">{Number(c.totalSpent ?? 0).toLocaleString()} FCFA</td>
+                  <td className="px-6 py-3 border-b border-neutral-200 text-neutral-500">
+                    {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '-'}
+                  </td>
+                  <td className="px-6 py-3 border-b border-neutral-200">
+                    <span className={`status-pill text-xs ${c.isActive !== false ? 'bg-success-100 text-success-700' : 'bg-neutral-100 text-neutral-500'}`}>
+                      {c.isActive !== false ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3 border-b border-neutral-200">
+                    <button className="px-3 py-1 border border-primary rounded bg-white text-primary cursor-pointer text-xs hover:bg-primary-50"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/customers/${c.id}`); }}>View</button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
         <div className="px-6 py-4 border-t border-neutral-200 flex items-center justify-between text-sm text-neutral-500">
-          <span>Showing {filtered.length} of {customers.length} customers</span>
+          <span>Showing {customers.length} of {customers.length} customers</span>
         </div>
       </div>
 
@@ -125,8 +158,10 @@ export default function Customers() {
             <div className="flex justify-end gap-3 mt-6">
               <button onClick={() => setShowModal(false)}
                 className="px-4 py-2 border border-neutral-300 rounded text-sm bg-white cursor-pointer hover:bg-neutral-50">Cancel</button>
-              <button onClick={handleAdd} disabled={!form.name || !form.phone}
-                className="px-4 py-2 bg-primary text-white rounded text-sm font-bold border-none cursor-pointer hover:bg-primary-dark disabled:opacity-40">Add Customer</button>
+              <button onClick={handleAdd} disabled={!form.name || !form.phone || creating}
+                className="px-4 py-2 bg-primary text-white rounded text-sm font-bold border-none cursor-pointer hover:bg-primary-dark disabled:opacity-40">
+                {creating ? 'Creating...' : 'Add Customer'}
+              </button>
             </div>
           </div>
         </div>

@@ -36,7 +36,7 @@ function resolveMainNavActiveLabel(pathname: string): string {
 export default function MainNav() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const activeLabel = resolveMainNavActiveLabel(location.pathname);
 
@@ -44,7 +44,7 @@ export default function MainNav() {
     <nav className="h-12 bg-primary flex items-center justify-between px-6 sticky top-0 z-50">
       <div className="flex items-center gap-8">
         <Link to="/" className="text-white font-bold text-lg no-underline">
-          P237
+          {user?.tenantName || 'JanLums'}
         </Link>
 
         <div className="flex h-12">
@@ -72,7 +72,7 @@ export default function MainNav() {
           onClick={() => setUserMenuOpen(!userMenuOpen)}
           className="flex items-center gap-2 text-white bg-transparent border-none cursor-pointer text-sm"
         >
-          <span>Admin User</span>
+          <span>{user?.firstName || 'Admin'}</span>
           <span className="text-xs">{userMenuOpen ? '\u25B2' : '\u25BC'}</span>
         </button>
 
