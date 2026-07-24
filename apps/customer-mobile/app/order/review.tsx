@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Text, Card, Button } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useOrderDraftStore } from '../../src/stores/orderDraftStore';
@@ -14,29 +13,17 @@ import { formatCurrency } from '../../src/utils/format';
 import { colors } from '../../src/config/colors';
 import { spacing, borderRadius } from '../../src/config/spacing';
 import { typography } from '../../src/config/typography';
+import { ScreenHeader } from '../../src/components/common/ScreenHeader';
+import { StepIndicator } from '../../src/components/common/StepIndicator';
+import { EmptyState } from '../../src/components/common/DataState';
 
-function EmptyDraft() {
-  const router = useRouter();
-  return (
-    <View style={styles.emptyContainer}>
-      <MaterialCommunityIcons name="cart-outline" size={64} color={colors.text.tertiary} />
-      <Text style={styles.emptyTitle}>Your order is empty</Text>
-      <Text style={styles.emptySubtitle}>Add services to get started</Text>
-        <Button
-            mode="contained"
-            onPress={() => router.push('/order/services' as any)}
-            style={styles.browseButton}
-            contentStyle={styles.browseButtonContent}
-            accessibilityLabel="Browse services"
-          >
-            Browse Services
-          </Button>
-    </View>
-  );
-}
+const ORDER_STEPS = [
+  { key: 'services', label: 'Services' },
+  { key: 'review', label: 'Review' },
+  { key: 'payment', label: 'Payment' },
+];
 
 export default function ReviewScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
 
   const selectedServices = useOrderDraftStore((s) => s.selectedServices);
@@ -83,30 +70,31 @@ export default function ReviewScreen() {
 
   if (selectedServices.length === 0) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.headerBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="Go back" accessibilityRole="button">
-            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerBarTitle} accessibilityRole="header">Review Order</Text>
-          <View style={{ width: 40 }} />
-        </View>
-        <EmptyDraft />
+      <View style={styles.container}>
+        <ScreenHeader title="Review Order" />
+        <StepIndicator steps={ORDER_STEPS} currentStep="review" />
+        <EmptyState
+          icon="cart-outline"
+          title="Your order is empty"
+          message="Add services to get started"
+          actionLabel="Browse Services"
+          onAction={() => router.push('/order/services' as any)}
+        />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.headerBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="Go back" accessibilityRole="button">
-          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerBarTitle} accessibilityRole="header">Review Order</Text>
-        <TouchableOpacity onPress={() => router.push('/order/services' as any)} style={styles.addMoreButton} accessibilityLabel="Add more services" accessibilityRole="button">
-          <MaterialCommunityIcons name="plus" size={24} color={colors.primary[500]} />
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <ScreenHeader
+        title="Review Order"
+        rightAction={
+          <TouchableOpacity onPress={() => router.push('/order/services' as any)} style={styles.addMoreButton} accessibilityLabel="Add more services" accessibilityRole="button">
+            <MaterialCommunityIcons name="plus" size={24} color={colors.primary[500]} />
+          </TouchableOpacity>
+        }
+      />
+      <StepIndicator steps={ORDER_STEPS} currentStep="review" />
 
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Card style={styles.sectionCard}>
@@ -296,26 +284,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[2],
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerBarTitle: {
-    ...typography['heading-sm'],
-    color: colors.text.primary,
-  },
   addMoreButton: {
     width: 40,
     height: 40,
@@ -497,29 +465,5 @@ const styles = StyleSheet.create({
   garmentRowTextFilled: {
     color: colors.primary[600],
     fontWeight: '500',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[8],
-  },
-  emptyTitle: {
-    ...typography.heading,
-    color: colors.text.primary,
-    marginTop: spacing[4],
-  },
-  emptySubtitle: {
-    ...typography.body,
-    color: colors.text.secondary,
-    marginTop: spacing[2],
-    textAlign: 'center',
-  },
-  browseButton: {
-    marginTop: spacing[5],
-    borderRadius: borderRadius.lg,
-  },
-  browseButtonContent: {
-    paddingHorizontal: spacing[6],
   },
 });

@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
 } from 'react-native';
-import { Text, Card, ActivityIndicator, Chip } from 'react-native-paper';
+import { Text, Card, Chip } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -21,51 +21,9 @@ import { formatCurrency, formatDate, formatOrderNumber } from '../../src/utils/f
 import { getStatusTranslation } from '../../src/utils/statusMapper';
 import { FILTER_OPTIONS, FILTER_STATUS_MAP, FilterKey } from '../../src/utils/orderFilters';
 import { Order } from '../../src/types';
-
-function SkeletonCard() {
-  return (
-    <View style={styles.skeletonCard}>
-      <View style={styles.skeletonRow}>
-        <View style={[styles.skeletonBlock, { width: '40%', height: 16 }]} />
-        <View style={[styles.skeletonBlock, { width: '30%', height: 24 }]} />
-      </View>
-      <View style={styles.skeletonDivider} />
-      <View style={styles.skeletonRow}>
-        <View style={[styles.skeletonBlock, { width: '25%', height: 14 }]} />
-        <View style={[styles.skeletonBlock, { width: '20%', height: 14 }]} />
-      </View>
-      <View style={[styles.skeletonBlock, { width: '50%', height: 14, marginTop: spacing[2] }]} />
-    </View>
-  );
-}
-
-function EmptyState({ onRefresh }: { onRefresh: () => void }) {
-  return (
-    <View style={styles.emptyContainer}>
-      <MaterialCommunityIcons name="clipboard-text-outline" size={64} color={colors.text.tertiary} />
-      <Text style={styles.emptyTitle}>No orders yet</Text>
-      <Text style={styles.emptySubtitle}>Your laundry orders will appear here</Text>
-      <TouchableOpacity style={styles.refreshButton} onPress={onRefresh} activeOpacity={0.7}>
-        <MaterialCommunityIcons name="refresh" size={18} color={colors.white} />
-        <Text style={styles.refreshButtonText}>Refresh</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <View style={styles.emptyContainer}>
-      <MaterialCommunityIcons name="alert-circle-outline" size={64} color={colors.error.DEFAULT} />
-      <Text style={styles.errorTitle}>Something went wrong</Text>
-      <Text style={styles.emptySubtitle}>{message}</Text>
-      <TouchableOpacity style={styles.retryButton} onPress={onRetry} activeOpacity={0.7}>
-        <MaterialCommunityIcons name="refresh" size={18} color={colors.white} />
-        <Text style={styles.refreshButtonText}>Retry</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
+import { SkeletonList } from '../../src/components/common/SkeletonLoader';
+import { SearchFilterBar } from '../../src/components/common/SearchFilterBar';
+import { ErrorState, EmptyState } from '../../src/components/common/DataState';
 
 export default function OrdersScreen() {
   const insets = useSafeAreaInsets();
@@ -208,29 +166,17 @@ export default function OrdersScreen() {
     return (
       <View>
         <View style={[styles.headerContainer, { paddingTop: insets.top + spacing[4] }]}>
-          <Text style={styles.headerTitle}>My Orders</Text>
+          <Text style={styles.headerTitle} accessibilityRole="header">My Orders</Text>
           <Text style={styles.headerSubtitle}>
             {statusCounts.all} {statusCounts.all === 1 ? 'order' : 'orders'}
           </Text>
         </View>
 
-        <View style={styles.searchContainer}>
-          <MaterialCommunityIcons name="magnify" size={20} color={colors.text.tertiary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search orders..."
-            placeholderTextColor={colors.text.tertiary}
-            value={searchQuery}
-            onChangeText={handleSearchChange}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <MaterialCommunityIcons name="close-circle" size={18} color={colors.text.tertiary} />
-            </TouchableOpacity>
-          )}
-        </View>
+        <SearchFilterBar
+          value={searchQuery}
+          onChangeText={handleSearchChange}
+          placeholder="Search orders..."
+        />
 
         <View style={styles.filtersRow}>
           <FlatList
@@ -268,27 +214,23 @@ export default function OrdersScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + spacing[4] }]}>
-        <View style={styles.headerContainer}>
+      <View style={styles.container}>
+        <View style={[styles.headerContainer, { paddingTop: insets.top + spacing[4] }]}>
           <Text style={styles.headerTitle}>My Orders</Text>
         </View>
-        <View style={styles.skeletonList}>
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-        </View>
+        <SkeletonList count={4} lines={3} />
       </View>
     );
   }
 
   if (isError) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + spacing[4] }]}>
-        <View style={styles.headerContainer}>
+      <View style={styles.container}>
+        <View style={[styles.headerContainer, { paddingTop: insets.top + spacing[4] }]}>
           <Text style={styles.headerTitle}>My Orders</Text>
         </View>
         <ErrorState
+          title="Something went wrong"
           message={error instanceof Error ? error.message : 'Unable to load orders'}
           onRetry={handleRefresh}
         />
@@ -304,7 +246,13 @@ export default function OrdersScreen() {
         renderItem={renderOrderItem}
         ListHeaderComponent={renderListHeader}
         ListEmptyComponent={
-          <EmptyState onRefresh={handleRefresh} />
+          <EmptyState
+            icon="clipboard-text-outline"
+            title="No orders yet"
+            message="Your laundry orders will appear here"
+            actionLabel="Refresh"
+            onAction={handleRefresh}
+          />
         }
         ListFooterComponent={
           searchedOrders.length > 0 ? (
@@ -359,25 +307,6 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text.secondary,
     marginTop: spacing[1],
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing[4],
-    marginBottom: spacing[3],
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
-    height: 44,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: spacing[2],
-    fontSize: 14,
-    color: colors.text.primary,
-    paddingVertical: 0,
   },
   filtersRow: {
     marginBottom: spacing[2],
@@ -440,70 +369,6 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontWeight: '500',
   },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: spacing[12],
-    paddingHorizontal: spacing[8],
-  },
-  emptyTitle: {
-    ...typography.heading,
-    color: colors.text.primary,
-    marginTop: spacing[4],
-  },
-  emptySubtitle: {
-    ...typography.body,
-    color: colors.text.secondary,
-    marginTop: spacing[2],
-    textAlign: 'center',
-  },
-  errorTitle: {
-    ...typography.heading,
-    color: colors.text.primary,
-    marginTop: spacing[4],
-  },
-  refreshButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary[500],
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.full,
-    marginTop: spacing[5],
-    gap: spacing[2],
-  },
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary[500],
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.full,
-    marginTop: spacing[5],
-    gap: spacing[2],
-  },
-  refreshButtonText: {
-    ...typography.button,
-    color: colors.white,
-  },
-  skeletonCard: {
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing[4],
-    marginBottom: spacing[2],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-  },
-  skeletonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  skeletonDivider: {
-    height: spacing[3],
-  },
-  skeletonBlock: {
-    backgroundColor: colors.gray[100],
-    borderRadius: borderRadius.sm,
-  },
   scanAnotherButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -515,10 +380,6 @@ const styles = StyleSheet.create({
   scanAnotherText: {
     ...typography.button,
     color: colors.primary[500],
-  },
-  skeletonList: {
-    paddingTop: spacing[4],
-    gap: spacing[2],
   },
   fab: {
     position: 'absolute',

@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
 import { Text, Card } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useOrderDetails } from '../../src/hooks/useOrderDetails';
@@ -14,20 +13,9 @@ import { formatCurrency, formatDate, formatOrderNumber } from '../../src/utils/f
 import { getStatusTranslation } from '../../src/utils/statusMapper';
 import { getOrderStatusDescription } from '../../src/utils/orderStatusDescriptions';
 import { OrderItem } from '../../src/types';
-
-function SkeletonSection() {
-  return (
-    <View style={styles.skeletonSection}>
-      <View style={[styles.skeletonBlock, { width: '35%', height: 16 }]} />
-      <View style={{ height: spacing[3] }} />
-      <View style={[styles.skeletonBlock, { width: '60%', height: 14 }]} />
-      <View style={{ height: spacing[2] }} />
-      <View style={[styles.skeletonBlock, { width: '45%', height: 14 }]} />
-      <View style={{ height: spacing[2] }} />
-      <View style={[styles.skeletonBlock, { width: '50%', height: 14 }]} />
-    </View>
-  );
-}
+import { ScreenHeader } from '../../src/components/common/ScreenHeader';
+import { SkeletonList } from '../../src/components/common/SkeletonLoader';
+import { ErrorState } from '../../src/components/common/DataState';
 
 function DetailRow({ label, value, isHighlighted }: { label: string; value: string; isHighlighted?: boolean }) {
   return (
@@ -52,7 +40,6 @@ function SectionCard({ title, children }: { title: string; children: React.React
 }
 
 export default function OrderDetailScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const analytics = useAnalytics();
@@ -75,48 +62,22 @@ export default function OrderDetailScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.headerBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerBarTitle}>Order Details</Text>
-          <View style={{ width: 40 }} />
-        </View>
-        <ScrollView style={styles.scrollContent} contentContainerStyle={styles.skeletonContent}>
-          <SkeletonSection />
-          <View style={{ height: spacing[4] }} />
-          <SkeletonSection />
-          <View style={{ height: spacing[4] }} />
-          <SkeletonSection />
-          <View style={{ height: spacing[4] }} />
-          <SkeletonSection />
-        </ScrollView>
+      <View style={styles.container}>
+        <ScreenHeader title="Order Details" />
+        <SkeletonList count={4} lines={2} />
       </View>
     );
   }
 
   if (isError || !order) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.headerBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerBarTitle}>Order Details</Text>
-          <View style={{ width: 40 }} />
-        </View>
-        <View style={styles.errorContainer}>
-          <MaterialCommunityIcons name="alert-circle-outline" size={64} color={colors.error.DEFAULT} />
-          <Text style={styles.errorTitle}>Unable to load order</Text>
-          <Text style={styles.errorSubtext}>
-            {error instanceof Error ? error.message : 'Something went wrong'}
-          </Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => refetch()} activeOpacity={0.7}>
-            <MaterialCommunityIcons name="refresh" size={18} color={colors.white} />
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.container}>
+        <ScreenHeader title="Order Details" />
+        <ErrorState
+          title="Unable to load order"
+          message={error instanceof Error ? error.message : 'Something went wrong'}
+          onRetry={() => refetch()}
+        />
       </View>
     );
   }
@@ -125,14 +86,8 @@ export default function OrderDetailScreen() {
   const itemCount = order.items?.length ?? 0;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.headerBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerBarTitle}>Order Details</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <View style={styles.container}>
+      <ScreenHeader title="Order Details" />
 
       <ScrollView
         style={styles.scrollContent}
@@ -236,26 +191,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[2],
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerBarTitle: {
-    ...typography['heading-sm'],
-    color: colors.text.primary,
   },
   scrollContent: {
     flex: 1,
@@ -383,47 +318,6 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     marginTop: 2,
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[8],
-  },
-  errorTitle: {
-    ...typography.heading,
-    color: colors.text.primary,
-    marginTop: spacing[4],
-  },
-  errorSubtext: {
-    ...typography.body,
-    color: colors.text.secondary,
-    marginTop: spacing[2],
-    textAlign: 'center',
-  },
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary[500],
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.full,
-    marginTop: spacing[5],
-    gap: spacing[2],
-  },
-  retryButtonText: {
-    ...typography.button,
-    color: colors.white,
-  },
-  skeletonSection: {
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing[4],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-  },
-  skeletonBlock: {
-    backgroundColor: colors.gray[100],
-    borderRadius: borderRadius.sm,
-  },
   trackingSection: {
     gap: spacing[1],
   },
@@ -452,9 +346,5 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     marginTop: spacing[1],
     lineHeight: 18,
-  },
-  skeletonContent: {
-    paddingTop: spacing[4],
-    paddingBottom: spacing[8],
   },
 });

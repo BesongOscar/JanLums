@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { View, StyleSheet, Animated } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -15,6 +15,96 @@ const PAYMENT_LABELS: Record<string, string> = {
   cash: 'Cash',
   card: 'Card',
 };
+
+function AnimatedCheckmark() {
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 4,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [scaleAnim, opacityAnim]);
+
+  return (
+    <Animated.View
+      style={[
+        styles.successIcon,
+        {
+          transform: [{ scale: scaleAnim }],
+          opacity: opacityAnim,
+        },
+      ]}
+    >
+      <MaterialCommunityIcons name="check-circle" size={80} color={colors.success.DEFAULT} />
+    </Animated.View>
+  );
+}
+
+function AnimatedClock() {
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 4,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(rotateAnim, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(rotateAnim, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+        ])
+      ),
+    ]).start();
+  }, [scaleAnim, opacityAnim, rotateAnim]);
+
+  const rotateInterpolation = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '15deg'],
+  });
+
+  return (
+    <Animated.View
+      style={[
+        styles.successIcon,
+        {
+          transform: [{ scale: scaleAnim }, { rotate: rotateInterpolation }],
+          opacity: opacityAnim,
+        },
+      ]}
+    >
+      <MaterialCommunityIcons name="clock-outline" size={80} color={colors.warning.DEFAULT} />
+    </Animated.View>
+  );
+}
 
 export default function OrderSuccessScreen() {
   const insets = useSafeAreaInsets();
@@ -47,9 +137,7 @@ export default function OrderSuccessScreen() {
       <View style={styles.content}>
         {queued === 'true' ? (
           <>
-            <View style={styles.successIcon}>
-              <MaterialCommunityIcons name="clock-outline" size={80} color={colors.warning.DEFAULT} />
-            </View>
+            <AnimatedClock />
             <Text style={styles.title}>Order Queued</Text>
             <Text style={styles.subtitle}>
               Your order has been saved and will be submitted automatically once you're back online.
@@ -74,9 +162,7 @@ export default function OrderSuccessScreen() {
           </>
         ) : (
           <>
-            <View style={styles.successIcon}>
-              <MaterialCommunityIcons name="check-circle" size={80} color={colors.success.DEFAULT} />
-            </View>
+            <AnimatedCheckmark />
             <Text style={styles.title}>Order Submitted!</Text>
             <Text style={styles.subtitle}>
               Your laundry order has been received and is being processed.

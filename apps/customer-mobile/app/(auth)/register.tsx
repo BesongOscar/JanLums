@@ -10,6 +10,9 @@ import { useAuthStore } from '../../src/stores/authStore';
 import { normalizeError } from '../../src/utils/errorHandler';
 import { useOfflineBlock } from '../../src/hooks/useOfflineBlock';
 import { colors } from '../../src/config/colors';
+import { spacing, borderRadius } from '../../src/config/spacing';
+import { typography } from '../../src/config/typography';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 function goToBusinessCode(router: ReturnType<typeof useRouter>) {
   router.replace('/(auth)/business-code' as any);
@@ -59,11 +62,12 @@ export default function RegisterScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent} accessibilityLabel="Registration form">
         <View style={styles.header}>
-          <Text variant="displayMedium" style={styles.title} accessibilityRole="header">
+          <MaterialCommunityIcons name="account-plus" size={56} color={colors.primary[500]} />
+          <Text style={styles.title} accessibilityRole="header">
             Create Account
           </Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>
-            Join JanLums
+          <Text style={styles.subtitle}>
+            Join {tenant?.name || 'JanLums'}
           </Text>
         </View>
 
@@ -85,6 +89,7 @@ export default function RegisterScreen() {
                   onChangeText={onChange}
                   onBlur={onBlur}
                   error={!!errors.firstName}
+                  mode="outlined"
                   style={[styles.input, styles.halfInput]}
                   accessibilityLabel="First name"
                 />
@@ -100,6 +105,7 @@ export default function RegisterScreen() {
                   onChangeText={onChange}
                   onBlur={onBlur}
                   error={!!errors.lastName}
+                  mode="outlined"
                   style={[styles.input, styles.halfInput]}
                   accessibilityLabel="Last name"
                 />
@@ -125,6 +131,7 @@ export default function RegisterScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
+                mode="outlined"
                 style={styles.input}
                 accessibilityLabel="Email address"
               />
@@ -147,6 +154,7 @@ export default function RegisterScreen() {
                 onBlur={onBlur}
                 error={!!errors.phone}
                 keyboardType="phone-pad"
+                mode="outlined"
                 style={styles.input}
                 accessibilityLabel="Phone number"
               />
@@ -169,6 +177,7 @@ export default function RegisterScreen() {
                 onBlur={onBlur}
                 error={!!errors.password}
                 secureTextEntry
+                mode="outlined"
                 style={styles.input}
                 accessibilityLabel="Password"
               />
@@ -191,6 +200,7 @@ export default function RegisterScreen() {
                 onBlur={onBlur}
                 error={!!errors.confirmPassword}
                 secureTextEntry
+                mode="outlined"
                 style={styles.input}
                 accessibilityLabel="Confirm password"
               />
@@ -208,6 +218,7 @@ export default function RegisterScreen() {
             loading={registerMutation.isPending}
             disabled={registerMutation.isPending}
             style={styles.button}
+            contentStyle={styles.buttonContent}
             accessibilityLabel="Create account"
             accessibilityState={{ disabled: registerMutation.isPending }}
           >
@@ -232,25 +243,29 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 24,
-    paddingTop: 60,
+    padding: spacing[6],
+    paddingTop: spacing[12],
   },
   header: {
-    marginBottom: 32,
+    alignItems: 'center',
+    marginBottom: spacing[6],
   },
   title: {
+    ...typography['display'],
     color: colors.primary[500],
-    marginBottom: 8,
+    marginTop: spacing[3],
+    marginBottom: spacing[1],
   },
   subtitle: {
+    ...typography['body-lg'],
     color: colors.text.secondary,
   },
   form: {
-    gap: 8,
+    gap: spacing[2],
   },
   row: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
   },
   input: {
     backgroundColor: colors.surface,
@@ -259,15 +274,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   button: {
-    marginTop: 16,
-    paddingVertical: 8,
+    marginTop: spacing[4],
+    borderRadius: borderRadius.lg,
+  },
+  buttonContent: {
+    paddingVertical: spacing[2],
   },
   linkButton: {
-    marginTop: 8,
+    marginTop: spacing[2],
   },
   error: {
     backgroundColor: colors.error.light,
-    borderRadius: 8,
-    marginBottom: 8,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing[2],
   },
 });

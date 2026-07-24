@@ -3,7 +3,10 @@ import { View, StyleSheet } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../../src/config/colors';
+import { spacing, borderRadius } from '../../src/config/spacing';
+import { typography } from '../../src/config/typography';
 
 const ONBOARDING_KEY = '@janlums/onboarding_complete';
 
@@ -11,17 +14,23 @@ const SLIDES = [
   {
     title: 'Professional Laundry Services',
     description: 'Experience premium laundry care for your garments with our expert cleaning services.',
-    icon: '👔',
+    icon: 'tshirt-crew' as const,
+    iconBg: colors.primary[50],
+    iconColor: colors.primary[500],
   },
   {
     title: 'Track Orders In Real Time',
     description: 'Know exactly where your laundry is at every step with live order tracking.',
-    icon: '📍',
+    icon: 'map-marker-path' as const,
+    iconBg: colors.success.light,
+    iconColor: colors.success.DEFAULT,
   },
   {
     title: 'Fast Pickup And Delivery',
     description: 'Schedule pickups and enjoy prompt delivery right to your doorstep.',
-    icon: '🚚',
+    icon: 'truck-fast' as const,
+    iconBg: colors.warning.light,
+    iconColor: colors.warning.DEFAULT,
   },
 ];
 
@@ -65,6 +74,7 @@ export default function OnboardingScreen() {
             onPress={handleSkip}
             disabled={isCompleting}
             textColor={colors.text.secondary}
+            compact
             accessibilityLabel="Skip onboarding"
             accessibilityState={{ disabled: isCompleting }}
           >
@@ -74,11 +84,13 @@ export default function OnboardingScreen() {
       </View>
 
       <View style={styles.slideContainer} accessibilityLiveRegion="polite">
-        <Text style={styles.icon}>{slide.icon}</Text>
-        <Text variant="headlineMedium" style={styles.title} accessibilityRole="header">
+        <View style={[styles.iconWrapper, { backgroundColor: slide.iconBg }]}>
+          <MaterialCommunityIcons name={slide.icon} size={48} color={slide.iconColor} />
+        </View>
+        <Text style={styles.title} accessibilityRole="header">
           {slide.title}
         </Text>
-        <Text variant="bodyLarge" style={styles.description}>
+        <Text style={styles.description}>
           {slide.description}
         </Text>
       </View>
@@ -120,55 +132,61 @@ const styles = StyleSheet.create({
   },
   skipContainer: {
     alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingTop: 60,
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[12],
   },
   slideContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: spacing[10],
   },
-  icon: {
-    fontSize: 80,
-    marginBottom: 32,
+  iconWrapper: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing[6],
   },
   title: {
+    ...typography['heading-lg'],
     color: colors.text.primary,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: spacing[3],
   },
   description: {
+    ...typography['body-lg'],
     color: colors.text.secondary,
     textAlign: 'center',
     lineHeight: 24,
   },
   footer: {
-    paddingHorizontal: 24,
-    paddingBottom: 48,
+    paddingHorizontal: spacing[6],
+    paddingBottom: spacing[12],
     alignItems: 'center',
   },
   dots: {
     flexDirection: 'row',
-    marginBottom: 32,
-    gap: 8,
+    marginBottom: spacing[6],
+    gap: spacing[2],
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: spacing[2],
+    height: spacing[2],
+    borderRadius: borderRadius.full,
     backgroundColor: colors.gray[300],
   },
   activeDot: {
-    width: 24,
+    width: spacing[6],
     backgroundColor: colors.primary[500],
-    borderRadius: 4,
+    borderRadius: borderRadius.full,
   },
   button: {
     width: '100%',
-    borderRadius: 8,
+    borderRadius: borderRadius.lg,
   },
   buttonContent: {
-    paddingVertical: 8,
+    paddingVertical: spacing[2],
   },
 });

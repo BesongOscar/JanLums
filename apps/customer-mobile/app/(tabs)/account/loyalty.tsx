@@ -8,12 +8,8 @@ import {
 import {
   Text,
   Card,
-  Button,
-  ActivityIndicator,
   ProgressBar,
 } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLoyalty } from '../../../src/hooks/useLoyalty';
 import { useAnalytics } from '../../../src/hooks/useAnalytics';
@@ -21,6 +17,9 @@ import { formatCurrency } from '../../../src/utils/format';
 import { colors } from '../../../src/config/colors';
 import { spacing, borderRadius } from '../../../src/config/spacing';
 import { typography } from '../../../src/config/typography';
+import { ScreenHeader } from '../../../src/components/common/ScreenHeader';
+import { SkeletonCard } from '../../../src/components/common/SkeletonLoader';
+import { ErrorState } from '../../../src/components/common/DataState';
 
 const TIER_CONFIG: Record<string, { label: string; icon: string; color: string; bg: string }> = {
   bronze: { label: 'Bronze', icon: 'shield-star-outline', color: '#CD7F32', bg: '#FFF3E0' },
@@ -36,13 +35,7 @@ const TIER_THRESHOLDS = [
   { tier: 'platinum', minSpend: 500000 },
 ];
 
-function getTierIndex(tier: string): number {
-  return TIER_THRESHOLDS.findIndex((t) => t.tier === tier);
-}
-
 export default function LoyaltyScreen() {
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
   const analytics = useAnalytics();
   const { data, isLoading, isError, refetch, isRefetching } = useLoyalty();
 
@@ -52,29 +45,32 @@ export default function LoyaltyScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary[500]} />
+      <View style={styles.container}>
+        <ScreenHeader title="Loyalty & Rewards" />
+        <View style={styles.content}>
+          <SkeletonCard lines={4} />
+        </View>
       </View>
     );
   }
 
   if (isError || !data) {
     return (
-      <View style={styles.center}>
-        <MaterialCommunityIcons name="alert-circle-outline" size={48} color={colors.error.DEFAULT} />
-        <Text style={styles.errorText}>Failed to load loyalty data</Text>
-        <Button mode="contained" onPress={() => refetch()} style={styles.retryButton}>
-          Retry
-        </Button>
+      <View style={styles.container}>
+        <ScreenHeader title="Loyalty & Rewards" />
+        <ErrorState
+          title="Failed to load loyalty data"
+          onRetry={() => refetch()}
+        />
       </View>
     );
   }
 
-  const tierIndex = getTierIndex(data.tier);
   const tierConfig = TIER_CONFIG[data.tier] || TIER_CONFIG.bronze;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
+      <ScreenHeader title="Loyalty & Rewards" />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
@@ -134,7 +130,7 @@ export default function LoyaltyScreen() {
         <Card style={styles.infoCard}>
           <Card.Content>
             <Text style={styles.sectionTitle}>Tiers & Benefits</Text>
-            {TIER_THRESHOLDS.map((tier, index) => {
+            {TIER_THRESHOLDS.map((tier) => {
               const config = TIER_CONFIG[tier.tier];
               const isCurrent = tier.tier === data.tier;
               return (
@@ -177,13 +173,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: spacing[4],
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background,
     padding: spacing[4],
   },
   tierCard: {
@@ -320,14 +309,5 @@ const styles = StyleSheet.create({
   currentBadgeText: {
     ...typography['label-sm'],
     fontWeight: '600',
-  },
-  errorText: {
-    ...typography.body,
-    color: colors.text.secondary,
-    marginTop: spacing[3],
-    marginBottom: spacing[4],
-  },
-  retryButton: {
-    backgroundColor: colors.primary[500],
   },
 });

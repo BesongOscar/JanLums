@@ -1,53 +1,24 @@
 import { Tabs } from 'expo-router';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useUnreadNotificationCount } from '../../src/hooks/useNotifications';
 import { colors } from '../../src/config/colors';
+import { spacing } from '../../src/config/spacing';
 
-/**
- * NotificationTabIcon
- *
- * Isolated component that owns the `useUnreadNotificationCount` hook.
- * Keeping the hook here (rather than in TabsLayout) ensures it only
- * executes after the QueryClientProvider tree is fully mounted.
- * If the query hasn't resolved yet, the badge simply doesn't render.
- */
 function NotificationTabIcon({ color, size }: { color: string; size: number }) {
   const { data: unreadData } = useUnreadNotificationCount();
   const unreadCount = unreadData?.count ?? 0;
 
   return (
-    <View
-      style={{
-        width: size + 4,
-        height: size + 4,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
+    <View style={[styles.tabIconContainer, { width: size + 4, height: size + 4 }]}>
       <MaterialCommunityIcons
         name={unreadCount > 0 ? 'bell' : 'bell-outline'}
         size={size}
         color={color}
       />
       {unreadCount > 0 && (
-        <View
-          style={{
-            position: 'absolute',
-            top: -4,
-            right: -6,
-            backgroundColor: colors.error.DEFAULT,
-            borderRadius: 8,
-            minWidth: 16,
-            height: 16,
-            justifyContent: 'center',
-            alignItems: 'center',
-            paddingHorizontal: 4,
-          }}
-        >
-          <Text
-            style={{ color: colors.white, fontSize: 10, fontWeight: '700' }}
-          >
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>
             {unreadCount > 99 ? '99+' : unreadCount}
           </Text>
         </View>
@@ -56,15 +27,30 @@ function NotificationTabIcon({ color, size }: { color: string; size: number }) {
   );
 }
 
-/**
- * TabsLayout
- *
- * Root tab navigator. Intentionally contains no hooks of its own —
- * tab layouts are instantiated early in the Expo Router render cycle,
- * sometimes before context providers (QueryClient, etc.) have finished
- * mounting. Any hook that depends on a provider must live in a child
- * component (see NotificationTabIcon above).
- */
+const styles = StyleSheet.create({
+  tabIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    backgroundColor: colors.error.DEFAULT,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+});
+
 export default function TabsLayout() {
   return (
     <Tabs
@@ -75,12 +61,12 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
-          paddingBottom: 8,
-          paddingTop: 8,
+          paddingBottom: spacing[2],
+          paddingTop: spacing[2],
           height: 64,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: spacing[3],
           fontWeight: '500',
         },
       }}

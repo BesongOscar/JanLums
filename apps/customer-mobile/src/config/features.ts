@@ -75,7 +75,7 @@ export const FEATURE_FLAGS: Record<string, FeatureFlag> = {
     key: 'loyaltyProgram',
     label: 'Loyalty Program',
     description: 'Enable loyalty points and tiers',
-    defaultValue: false,
+    defaultValue: true,
   },
   promotions: {
     key: 'promotions',

@@ -1,14 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import { View, FlatList, RefreshControl, StyleSheet } from 'react-native';
-import { Text, Button, ActivityIndicator, Dialog, Portal, IconButton } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text, Button, ActivityIndicator, Dialog, Portal } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAnalytics } from '../../../src/hooks/useAnalytics';
 import {
   useNotifications,
   useUnreadNotificationCount,
-  useMarkNotificationRead,
   useMarkAllNotificationsRead,
   useDeleteNotification,
   useDeleteAllNotifications,
@@ -19,11 +16,12 @@ import { colors } from '../../../src/config/colors';
 import { spacing, borderRadius } from '../../../src/config/spacing';
 import { typography } from '../../../src/config/typography';
 import { AppNotification } from '../../../src/types';
+import { ScreenHeader } from '../../../src/components/common/ScreenHeader';
+import { ErrorState, EmptyState } from '../../../src/components/common/DataState';
 
 type ConfirmAction = 'markAllRead' | 'deleteAll' | null;
 
 export default function NotificationsScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const analytics = useAnalytics();
   const { blockIfOffline } = useOfflineBlock();
@@ -34,7 +32,6 @@ export default function NotificationsScreen() {
 
   const { data: notifications, isLoading, isError, refetch, isRefetching } = useNotifications();
   const { data: unreadData } = useUnreadNotificationCount();
-  const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
   const deleteNotification = useDeleteNotification();
   const deleteAll = useDeleteAllNotifications();
@@ -107,61 +104,60 @@ export default function NotificationsScreen() {
     );
   };
 
-  const renderEmptyState = () => (
-    <View style={[styles.center, { paddingTop: insets.top + spacing[12] }]} accessibilityRole="text">
-      <MaterialCommunityIcons name="bell-off-outline" size={64} color={colors.text.tertiary} />
-      <Text style={styles.emptyTitle}>No notifications</Text>
-      <Text style={styles.emptyDescription}>
-        You're all caught up! Notifications about your orders will appear here.
-      </Text>
-    </View>
-  );
-
-  const renderErrorState = () => (
-    <View style={[styles.center, { paddingTop: insets.top + spacing[12] }]}>
-      <MaterialCommunityIcons name="alert-circle-outline" size={48} color={colors.error.DEFAULT} />
-      <Text style={styles.errorText}>Failed to load notifications</Text>
-      <Button
-        mode="contained"
-        onPress={() => refetch()}
-        style={styles.retryButton}
-        accessibilityLabel="Retry loading notifications"
-      >
-        Retry
-      </Button>
-    </View>
-  );
-
   if (isLoading) {
     return (
-      <View style={[styles.center, { paddingTop: insets.top + spacing[12] }]} accessibilityRole="text" accessibilityLabel="Loading notifications">
-        <ActivityIndicator size="large" color={colors.primary[500]} />
-        <Text style={styles.loadingText}>Loading notifications...</Text>
+      <View style={styles.container}>
+        <ScreenHeader
+          title="Notifications"
+          showBack={false}
+        />
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.primary[500]} />
+          <Text style={styles.loadingText}>Loading notifications...</Text>
+        </View>
       </View>
     );
   }
 
   if (isError) {
-    return renderErrorState();
+    return (
+      <View style={styles.container}>
+        <ScreenHeader
+          title="Notifications"
+          showBack={false}
+        />
+        <ErrorState
+          title="Failed to load notifications"
+          onRetry={() => refetch()}
+        />
+      </View>
+    );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.screenHeader}>
-        <Text style={styles.screenTitle}>Notifications</Text>
-        {unreadCount > 0 && (
+    <View style={styles.container}>
+      <ScreenHeader
+        title="Notifications"
+        showBack={false}
+        rightAction={unreadCount > 0 ? (
           <View style={styles.badgeContainer} accessibilityLabel={`${unreadCount} unread notifications`} accessibilityRole="text">
             <Text style={styles.badgeText}>{unreadCount}</Text>
           </View>
-        )}
-      </View>
+        ) : undefined}
+      />
 
       <FlatList
         data={notifications}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         ListHeaderComponent={renderHeader}
-        ListEmptyComponent={renderEmptyState}
+        ListEmptyComponent={
+          <EmptyState
+            icon="bell-off-outline"
+            title="No notifications"
+            message="You're all caught up! Notifications about your orders will appear here."
+          />
+        }
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
@@ -212,20 +208,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing[8],
-    backgroundColor: colors.background,
-  },
-  screenHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  screenTitle: {
-    ...typography['heading-lg'],
-    color: colors.text.primary,
   },
   badgeContainer: {
     backgroundColor: colors.primary[500],
@@ -255,31 +237,9 @@ const styles = StyleSheet.create({
   emptyList: {
     flexGrow: 1,
   },
-  emptyTitle: {
-    ...typography.heading,
-    color: colors.text.primary,
-    marginTop: spacing[4],
-    textAlign: 'center',
-  },
-  emptyDescription: {
-    ...typography.body,
-    color: colors.text.secondary,
-    marginTop: spacing[2],
-    textAlign: 'center',
-    maxWidth: 280,
-  },
   loadingText: {
     ...typography.body,
     color: colors.text.secondary,
     marginTop: spacing[4],
-  },
-  errorText: {
-    ...typography.body,
-    color: colors.text.secondary,
-    marginTop: spacing[3],
-    marginBottom: spacing[4],
-  },
-  retryButton: {
-    backgroundColor: colors.primary[500],
   },
 });

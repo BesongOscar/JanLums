@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Text, Card, Button } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAnalytics } from '../../src/hooks/useAnalytics';
@@ -20,6 +19,14 @@ import { colors } from '../../src/config/colors';
 import { spacing, borderRadius } from '../../src/config/spacing';
 import { typography } from '../../src/config/typography';
 import type { PaymentProvider } from '../../src/types';
+import { ScreenHeader } from '../../src/components/common/ScreenHeader';
+import { StepIndicator } from '../../src/components/common/StepIndicator';
+
+const ORDER_STEPS = [
+  { key: 'services', label: 'Services' },
+  { key: 'review', label: 'Review' },
+  { key: 'payment', label: 'Payment' },
+];
 
 interface PaymentOption {
   key: PaymentProvider;
@@ -56,7 +63,6 @@ const PAYMENT_OPTIONS: PaymentOption[] = [
 ];
 
 export default function PaymentScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const analytics = useAnalytics();
   const isOnline = useUIStore((s) => s.isOnline);
@@ -131,19 +137,9 @@ export default function PaymentScreen() {
   ]);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.headerBar}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-          accessibilityLabel="Go back"
-          accessibilityRole="button"
-        >
-          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerBarTitle} accessibilityRole="header">Payment</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <View style={styles.container}>
+      <ScreenHeader title="Payment" />
+      <StepIndicator steps={ORDER_STEPS} currentStep="payment" />
 
       <ScrollView
         style={styles.scrollView}
@@ -282,27 +278,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20,
-  },
-  headerBarTitle: {
-    ...typography.heading,
-    color: colors.text.primary,
   },
   scrollView: {
     flex: 1,

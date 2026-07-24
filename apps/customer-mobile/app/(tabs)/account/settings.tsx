@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
-import { ScrollView, Alert, StyleSheet } from 'react-native';
-import { List, Divider } from 'react-native-paper';
+import { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet } from 'react-native';
+import { List, Divider, Dialog, Portal, Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { useSyncQueueStore } from '../../../src/stores/syncQueueStore';
@@ -16,27 +16,16 @@ export default function SettingsScreen() {
   const pendingCount = useSyncQueueStore((s) => s.getCount('pending'));
   const failedCount = useSyncQueueStore((s) => s.getCount('failed'));
   const totalPending = pendingCount + failedCount;
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   useEffect(() => {
     analytics.track({ name: 'settings_viewed' });
   }, [analytics]);
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Log Out',
-      'Are you sure you want to log out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Log Out',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            router.replace('/(auth)/login');
-          },
-        },
-      ]
-    );
+  const handleLogout = async () => {
+    setShowLogoutDialog(false);
+    await logout();
+    router.replace('/(auth)/login');
   };
 
   return (
@@ -83,13 +72,27 @@ export default function SettingsScreen() {
           title="Log Out"
           description="Sign out of your account"
           left={(props) => <List.Icon {...props} icon="logout" color={colors.error.DEFAULT} />}
-          onPress={handleLogout}
+          onPress={() => setShowLogoutDialog(true)}
           titleStyle={[styles.listTitle, { color: colors.error.DEFAULT }]}
           descriptionStyle={styles.listDescription}
           accessibilityLabel="Log out of your account"
           accessibilityHint="Opens a confirmation dialog to log out"
         />
       </List.Section>
+
+      <Portal>
+        <Dialog visible={showLogoutDialog} onDismiss={() => setShowLogoutDialog(false)}>
+          <Dialog.Icon icon="logout" />
+          <Dialog.Title>Log Out</Dialog.Title>
+          <Dialog.Content>
+            <Text>Are you sure you want to log out?</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowLogoutDialog(false)}>Cancel</Button>
+            <Button onPress={handleLogout} textColor={colors.error.DEFAULT}>Log Out</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </ScrollView>
   );
 }

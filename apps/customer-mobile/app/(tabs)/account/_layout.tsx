@@ -34,6 +34,7 @@ export default function AccountLayout() {
         name="loyalty"
         options={{
           title: 'Loyalty & Rewards',
+          headerShown: false,
         }}
       />
       <Stack.Screen

@@ -1,6 +1,6 @@
 import { useMemo, useEffect } from 'react';
 import { View, ScrollView, RefreshControl, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text, Card, ActivityIndicator } from 'react-native-paper';
+import { Text, Card } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -11,16 +11,9 @@ import { colors } from '../../src/config/colors';
 import { spacing, borderRadius } from '../../src/config/spacing';
 import { typography } from '../../src/config/typography';
 import { formatCurrency, formatDate } from '../../src/utils/format';
-import { STATUS_MAP, getStatusTranslation } from '../../src/utils/statusMapper';
+import { getStatusTranslation } from '../../src/utils/statusMapper';
 import { Order } from '../../src/types';
-
-function SkeletonBlock({ height }: { height: number }) {
-  return (
-    <View style={[styles.skeleton, { height }]}>
-      <ActivityIndicator size="small" color={colors.primary[300]} />
-    </View>
-  );
-}
+import { SkeletonCard, SkeletonBlock } from '../../src/components/common/SkeletonLoader';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -48,7 +41,6 @@ export default function HomeScreen() {
   const isLoading = profileLoading || ordersLoading;
   const isError = profileError || ordersError;
 
-
   const stats = useMemo(() => {
     const list = orders ?? [];
     const active = list.filter((o: Order) => !['completed', 'cancelled'].includes(o.status));
@@ -72,11 +64,18 @@ export default function HomeScreen() {
   if (isLoading) {
     return (
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <SkeletonBlock height={100} />
+        <View style={{ paddingTop: insets.top }} />
+        <SkeletonBlock width="100%" height={100} borderRadiusVal={borderRadius.xl} />
         <View style={{ height: spacing[4] }} />
-        <SkeletonBlock height={80} />
+        <SkeletonBlock width="30%" height={20} />
+        <View style={{ height: spacing[3] }} />
+        <View style={styles.skeletonRow}>
+          <SkeletonBlock width="33%" height={80} borderRadiusVal={borderRadius.lg} />
+          <SkeletonBlock width="33%" height={80} borderRadiusVal={borderRadius.lg} />
+          <SkeletonBlock width="33%" height={80} borderRadiusVal={borderRadius.lg} />
+        </View>
         <View style={{ height: spacing[4] }} />
-        <SkeletonBlock height={200} />
+        <SkeletonCard lines={2} />
       </ScrollView>
     );
   }
@@ -96,6 +95,13 @@ export default function HomeScreen() {
       </ScrollView>
     );
   }
+
+  const quickActions = [
+    { label: 'New Order', icon: 'plus-circle' as const, route: '/order/services' as const },
+    { label: 'View Orders', icon: 'clipboard-list' as const, route: '/(tabs)/orders' as const },
+    { label: 'Track Orders', icon: 'map-marker-path' as const, route: '/(tabs)/track' as const },
+    { label: 'Scan QR', icon: 'qrcode-scan' as const, route: '/scan' as const },
+  ];
 
   return (
     <ScrollView
@@ -211,30 +217,19 @@ export default function HomeScreen() {
 
       <Text style={styles.sectionTitle}>Quick Actions</Text>
       <View style={styles.quickActions}>
-        <Card style={styles.actionCard} onPress={() => router.push('/order/services' as any)} accessibilityLabel="Create new order">
-          <Card.Content style={styles.actionContent}>
-            <MaterialCommunityIcons name="plus-circle" size={28} color={colors.primary[500]} />
-            <Text style={styles.actionLabel}>New Order</Text>
-          </Card.Content>
-        </Card>
-        <Card style={styles.actionCard} onPress={() => router.push('/(tabs)/orders')} accessibilityLabel="View all orders">
-          <Card.Content style={styles.actionContent}>
-            <MaterialCommunityIcons name="clipboard-list" size={28} color={colors.primary[500]} />
-            <Text style={styles.actionLabel}>View Orders</Text>
-          </Card.Content>
-        </Card>
-        <Card style={styles.actionCard} onPress={() => router.push('/(tabs)/track')} accessibilityLabel="Track orders">
-          <Card.Content style={styles.actionContent}>
-            <MaterialCommunityIcons name="map-marker-path" size={28} color={colors.primary[500]} />
-            <Text style={styles.actionLabel}>Track Orders</Text>
-          </Card.Content>
-        </Card>
-        <Card style={styles.actionCard} onPress={() => router.push('/scan' as any)} accessibilityLabel="Scan QR code">
-          <Card.Content style={styles.actionContent}>
-            <MaterialCommunityIcons name="qrcode-scan" size={28} color={colors.primary[500]} />
-            <Text style={styles.actionLabel}>Scan QR</Text>
-          </Card.Content>
-        </Card>
+        {quickActions.map((action) => (
+          <Card
+            key={action.label}
+            style={styles.actionCard}
+            onPress={() => router.push(action.route as any)}
+            accessibilityLabel={action.label}
+          >
+            <Card.Content style={styles.actionContent}>
+              <MaterialCommunityIcons name={action.icon} size={28} color={colors.primary[500]} />
+              <Text style={styles.actionLabel}>{action.label}</Text>
+            </Card.Content>
+          </Card>
+        ))}
       </View>
     </ScrollView>
   );
@@ -254,12 +249,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing[4],
-  },
-  skeleton: {
-    backgroundColor: colors.gray[100],
-    borderRadius: borderRadius.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   welcomeCard: {
     backgroundColor: colors.primary[500],
@@ -303,7 +292,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    ...typography['display'],
     fontSize: 24,
     fontWeight: '700',
   },
@@ -421,11 +409,12 @@ const styles = StyleSheet.create({
   },
   quickActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing[2],
     marginBottom: spacing[4],
   },
   actionCard: {
-    flex: 1,
+    width: '48%',
     backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
   },
@@ -437,6 +426,10 @@ const styles = StyleSheet.create({
   actionLabel: {
     ...typography['label-lg'],
     color: colors.text.primary,
+  },
+  skeletonRow: {
+    flexDirection: 'row',
+    gap: spacing[2],
   },
   errorText: {
     ...typography['heading-sm'],

@@ -8,7 +8,6 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Text, Card, Chip, ActivityIndicator } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useServices } from '../../src/hooks/useServices';
@@ -20,52 +19,31 @@ import { spacing, borderRadius } from '../../src/config/spacing';
 import { typography } from '../../src/config/typography';
 import { formatCurrency } from '../../src/utils/format';
 import { Service } from '../../src/types';
+import { ScreenHeader } from '../../src/components/common/ScreenHeader';
+import { StepIndicator } from '../../src/components/common/StepIndicator';
+import { SearchFilterBar } from '../../src/components/common/SearchFilterBar';
+import { SkeletonList } from '../../src/components/common/SkeletonLoader';
+import { ErrorState, EmptyState } from '../../src/components/common/DataState';
 
 const CATEGORY_ALL = '__all__';
+const ORDER_STEPS = [
+  { key: 'services', label: 'Services' },
+  { key: 'review', label: 'Review' },
+  { key: 'payment', label: 'Payment' },
+];
 
 function getUniqueCategories(services: Service[]): string[] {
   const cats = services.map((s) => s.category);
   return [...new Set(cats)].sort();
 }
 
-function SkeletonCard() {
-  return (
-    <View style={styles.skeletonCard}>
-      <ActivityIndicator size="small" color={colors.primary[300]} />
-    </View>
-  );
-}
-
-function EmptyState({ onRefresh }: { onRefresh: () => void }) {
-  return (
-    <View style={styles.emptyContainer}>
-      <MaterialCommunityIcons name="tshirt-crew-outline" size={64} color={colors.text.tertiary} />
-      <Text style={styles.emptyTitle}>No services available</Text>
-      <Text style={styles.emptySubtitle}>Services will appear here once added</Text>
-      <TouchableOpacity style={styles.retryButton} onPress={onRefresh} activeOpacity={0.7}>
-        <MaterialCommunityIcons name="refresh" size={18} color={colors.white} />
-        <Text style={styles.retryButtonText}>Refresh</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <View style={styles.emptyContainer}>
-      <MaterialCommunityIcons name="alert-circle-outline" size={64} color={colors.error.DEFAULT} />
-      <Text style={styles.emptyTitle}>Something went wrong</Text>
-      <Text style={styles.emptySubtitle}>{message}</Text>
-      <TouchableOpacity style={styles.retryButton} onPress={onRetry} activeOpacity={0.7}>
-        <MaterialCommunityIcons name="refresh" size={18} color={colors.white} />
-        <Text style={styles.retryButtonText}>Retry</Text>
-      </TouchableOpacity>
-    </View>
-  );
+function formatCategoryLabel(category: string): string {
+  return category
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export default function ServicesScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const analytics = useAnalytics();
   const draftCount = useOrderDraftStore((s) => s.getItemCount());
@@ -152,7 +130,7 @@ export default function ServicesScreen() {
                 )}
                 <View style={styles.serviceMeta}>
                   <Text style={styles.servicePrice}>{formatCurrency(item.basePrice)}</Text>
-                  <Text style={styles.serviceCategory}>{item.category}</Text>
+                  <Text style={styles.serviceCategory}>{formatCategoryLabel(item.category)}</Text>
                 </View>
               </View>
               <MaterialCommunityIcons name="chevron-right" size={20} color={colors.text.tertiary} />
@@ -167,43 +145,11 @@ export default function ServicesScreen() {
   const renderHeader = useCallback(() => {
     return (
       <View>
-        <View style={[styles.headerContainer, { paddingTop: insets.top + spacing[4] }]}>
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text.primary} />
-            </TouchableOpacity>
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.headerTitle}>Services</Text>
-              <Text style={styles.headerSubtitle}>
-                {services?.length ?? 0} services available
-              </Text>
-            </View>
-            {draftCount > 0 && (
-              <TouchableOpacity onPress={handleGoToDraft} style={styles.draftBadge}>
-                <MaterialCommunityIcons name="clipboard-text" size={20} color={colors.primary[500]} />
-                <Text style={styles.draftBadgeText}>{draftCount}</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.searchContainer}>
-          <MaterialCommunityIcons name="magnify" size={20} color={colors.text.tertiary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search services..."
-            placeholderTextColor={colors.text.tertiary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <MaterialCommunityIcons name="close-circle" size={18} color={colors.text.tertiary} />
-            </TouchableOpacity>
-          )}
-        </View>
+        <SearchFilterBar
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Search services..."
+        />
 
         {categories.length > 0 && (
           <View style={styles.filtersRow}>
@@ -215,7 +161,7 @@ export default function ServicesScreen() {
               contentContainerStyle={styles.filtersContent}
               renderItem={({ item: cat }) => {
                 const isActive = activeCategory === cat;
-                const label = cat === CATEGORY_ALL ? 'All' : cat;
+                const label = cat === CATEGORY_ALL ? 'All' : formatCategoryLabel(cat);
                 const count = categoryCounts[cat] ?? 0;
                 return (
                   <Chip
@@ -240,42 +186,21 @@ export default function ServicesScreen() {
         )}
       </View>
     );
-  }, [
-    insets,
-    router,
-    draftCount,
-    handleGoToDraft,
-    searchQuery,
-    categories,
-    activeCategory,
-    categoryCounts,
-    services,
-  ]);
+  }, [searchQuery, categories, activeCategory, categoryCounts]);
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + spacing[4] }]}>
-        <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>Services</Text>
-        </View>
-        <View style={styles.skeletonList}>
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-        </View>
+      <View style={styles.container}>
+        <ScreenHeader title="Services" subtitle="Select laundry services" showBack />
+        <SkeletonList count={4} lines={2} />
       </View>
     );
   }
 
   if (isError) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + spacing[4] }]}>
-        <View style={styles.headerContainer}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Services</Text>
-        </View>
+      <View style={styles.container}>
+        <ScreenHeader title="Services" showBack onBack={() => router.back()} />
         <ErrorState
           message={error instanceof Error ? error.message : 'Unable to load services'}
           onRetry={() => refetch()}
@@ -286,17 +211,23 @@ export default function ServicesScreen() {
 
   if (!services || services.length === 0) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + spacing[4] }]}>
-        <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>Services</Text>
-        </View>
-        <EmptyState onRefresh={() => refetch()} />
+      <View style={styles.container}>
+        <ScreenHeader title="Services" showBack />
+        <EmptyState
+          icon="tshirt-crew-outline"
+          title="No services available"
+          message="Services will appear here once added"
+          actionLabel="Refresh"
+          onAction={() => refetch()}
+        />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      <ScreenHeader title="Services" subtitle="Select laundry services" showBack={false} />
+      <StepIndicator steps={ORDER_STEPS} currentStep="services" />
       <FlatList
         data={filteredServices}
         keyExtractor={(item) => item.id}
@@ -319,6 +250,13 @@ export default function ServicesScreen() {
           />
         }
       />
+
+      {draftCount > 0 && (
+        <TouchableOpacity onPress={handleGoToDraft} style={styles.fab} activeOpacity={0.85} accessibilityLabel="View order draft">
+          <MaterialCommunityIcons name="clipboard-text" size={24} color={colors.white} />
+          <Text style={styles.fabText}>{draftCount}</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -327,66 +265,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  headerContainer: {
-    paddingHorizontal: spacing[4],
-    paddingBottom: spacing[3],
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[1],
-  },
-  headerTextContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    ...typography['heading-lg'],
-    color: colors.text.primary,
-  },
-  headerSubtitle: {
-    ...typography.body,
-    color: colors.text.secondary,
-    marginTop: spacing[1],
-  },
-  draftBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary[50],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.full,
-    gap: spacing[1],
-  },
-  draftBadgeText: {
-    ...typography['label-lg'],
-    color: colors.primary[500],
-    fontWeight: '700',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing[4],
-    marginBottom: spacing[3],
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
-    height: 44,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: spacing[2],
-    fontSize: 14,
-    color: colors.text.primary,
-    paddingVertical: 0,
   },
   filtersRow: {
     marginBottom: spacing[2],
@@ -459,19 +337,6 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
     overflow: 'hidden',
   },
-  skeletonCard: {
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing[4],
-    marginBottom: spacing[2],
-    borderRadius: borderRadius.lg,
-    padding: spacing[8],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  skeletonList: {
-    paddingTop: spacing[4],
-    gap: spacing[2],
-  },
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: spacing[12],
@@ -488,18 +353,26 @@ const styles = StyleSheet.create({
     marginTop: spacing[2],
     textAlign: 'center',
   },
-  retryButton: {
+  fab: {
+    position: 'absolute',
+    right: spacing[4],
+    bottom: spacing[6],
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.primary[500],
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     borderRadius: borderRadius.full,
-    marginTop: spacing[5],
     gap: spacing[2],
+    elevation: 6,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
-  retryButtonText: {
-    ...typography.button,
+  fabText: {
+    ...typography['label-lg'],
     color: colors.white,
+    fontWeight: '700',
   },
 });

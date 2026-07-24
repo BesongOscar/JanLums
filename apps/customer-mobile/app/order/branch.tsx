@@ -6,8 +6,7 @@ import {
   StyleSheet,
   RefreshControl,
 } from 'react-native';
-import { Text, Card, ActivityIndicator } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text, Card } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useBranches } from '../../src/hooks/useBranches';
@@ -16,45 +15,18 @@ import { colors } from '../../src/config/colors';
 import { spacing, borderRadius } from '../../src/config/spacing';
 import { typography } from '../../src/config/typography';
 import { Branch } from '../../src/types';
+import { ScreenHeader } from '../../src/components/common/ScreenHeader';
+import { StepIndicator } from '../../src/components/common/StepIndicator';
+import { SkeletonList } from '../../src/components/common/SkeletonLoader';
+import { ErrorState, EmptyState } from '../../src/components/common/DataState';
 
-function SkeletonCard() {
-  return (
-    <View style={styles.skeletonCard}>
-      <ActivityIndicator size="small" color={colors.primary[300]} />
-    </View>
-  );
-}
-
-function EmptyState({ onRefresh }: { onRefresh: () => void }) {
-  return (
-    <View style={styles.emptyContainer}>
-      <MaterialCommunityIcons name="store-off-outline" size={64} color={colors.text.tertiary} />
-      <Text style={styles.emptyTitle}>No branches available</Text>
-      <Text style={styles.emptySubtitle}>Branches will appear here once added</Text>
-      <TouchableOpacity style={styles.retryButton} onPress={onRefresh} activeOpacity={0.7}>
-        <MaterialCommunityIcons name="refresh" size={18} color={colors.white} />
-        <Text style={styles.retryButtonText}>Refresh</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <View style={styles.emptyContainer}>
-      <MaterialCommunityIcons name="alert-circle-outline" size={64} color={colors.error.DEFAULT} />
-      <Text style={styles.emptyTitle}>Something went wrong</Text>
-      <Text style={styles.emptySubtitle}>{message}</Text>
-      <TouchableOpacity style={styles.retryButton} onPress={onRetry} activeOpacity={0.7}>
-        <MaterialCommunityIcons name="refresh" size={18} color={colors.white} />
-        <Text style={styles.retryButtonText}>Retry</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
+const ORDER_STEPS = [
+  { key: 'services', label: 'Services' },
+  { key: 'review', label: 'Review' },
+  { key: 'payment', label: 'Payment' },
+];
 
 export default function BranchSelectionScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const selectedBranchId = useOrderDraftStore((s) => s.branchId);
   const setBranch = useOrderDraftStore((s) => s.setBranch);
@@ -125,48 +97,21 @@ export default function BranchSelectionScreen() {
     [selectedBranchId, handleSelectBranch]
   );
 
-  const renderHeader = useCallback(() => {
-    return (
-      <View style={[styles.headerContainer, { paddingTop: insets.top + spacing[4] }]}>
-        <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <View>
-            <Text style={styles.headerTitle}>Select Branch</Text>
-            <Text style={styles.headerSubtitle}>
-              {activeBranches.length} {activeBranches.length === 1 ? 'branch' : 'branches'} available
-            </Text>
-          </View>
-        </View>
-      </View>
-    );
-  }, [insets, router, activeBranches.length]);
-
   if (isLoading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + spacing[4] }]}>
-        <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>Select Branch</Text>
-        </View>
-        <View style={styles.skeletonList}>
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-        </View>
+      <View style={styles.container}>
+        <ScreenHeader title="Select Branch" subtitle="Choose a service location" />
+        <StepIndicator steps={ORDER_STEPS} currentStep="review" />
+        <SkeletonList count={3} lines={2} />
       </View>
     );
   }
 
   if (isError) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + spacing[4] }]}>
-        <View style={styles.headerContainer}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Select Branch</Text>
-        </View>
+      <View style={styles.container}>
+        <ScreenHeader title="Select Branch" />
+        <StepIndicator steps={ORDER_STEPS} currentStep="review" />
         <ErrorState
           message={error instanceof Error ? error.message : 'Unable to load branches'}
           onRetry={() => refetch()}
@@ -177,22 +122,28 @@ export default function BranchSelectionScreen() {
 
   if (activeBranches.length === 0) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + spacing[4] }]}>
-        <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>Select Branch</Text>
-        </View>
-        <EmptyState onRefresh={() => refetch()} />
+      <View style={styles.container}>
+        <ScreenHeader title="Select Branch" />
+        <StepIndicator steps={ORDER_STEPS} currentStep="review" />
+        <EmptyState
+          icon="store-off-outline"
+          title="No branches available"
+          message="Branches will appear here once added"
+          actionLabel="Refresh"
+          onAction={() => refetch()}
+        />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      <ScreenHeader title="Select Branch" subtitle="Choose a service location" />
+      <StepIndicator steps={ORDER_STEPS} currentStep="review" />
       <FlatList
         data={activeBranches}
         keyExtractor={(item) => item.id}
         renderItem={renderBranchItem}
-        ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -212,31 +163,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  headerContainer: {
-    paddingHorizontal: spacing[4],
-    paddingBottom: spacing[3],
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[1],
-  },
-  headerTitle: {
-    ...typography['heading-lg'],
-    color: colors.text.primary,
-  },
-  headerSubtitle: {
-    ...typography.body,
-    color: colors.text.secondary,
-    marginTop: spacing[1],
-  },
   listContent: {
+    paddingTop: spacing[3],
     paddingBottom: spacing[8],
   },
   branchCard: {
@@ -288,48 +216,5 @@ const styles = StyleSheet.create({
   branchMetaText: {
     ...typography.caption,
     color: colors.text.tertiary,
-  },
-  skeletonCard: {
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing[4],
-    marginBottom: spacing[2],
-    borderRadius: borderRadius.lg,
-    padding: spacing[8],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  skeletonList: {
-    paddingTop: spacing[4],
-    gap: spacing[2],
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: spacing[12],
-    paddingHorizontal: spacing[8],
-  },
-  emptyTitle: {
-    ...typography.heading,
-    color: colors.text.primary,
-    marginTop: spacing[4],
-  },
-  emptySubtitle: {
-    ...typography.body,
-    color: colors.text.secondary,
-    marginTop: spacing[2],
-    textAlign: 'center',
-  },
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary[500],
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.full,
-    marginTop: spacing[5],
-    gap: spacing[2],
-  },
-  retryButtonText: {
-    ...typography.button,
-    color: colors.white,
   },
 });

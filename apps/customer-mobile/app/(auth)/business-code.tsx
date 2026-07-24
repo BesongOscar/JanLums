@@ -7,6 +7,9 @@ import { useAuthStore } from '../../src/stores/authStore';
 import { normalizeError } from '../../src/utils/errorHandler';
 import { useOfflineBlock } from '../../src/hooks/useOfflineBlock';
 import { colors } from '../../src/config/colors';
+import { spacing, borderRadius } from '../../src/config/spacing';
+import { typography } from '../../src/config/typography';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function BusinessCodeScreen() {
   const router = useRouter();
@@ -52,10 +55,11 @@ export default function BusinessCodeScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text variant="displayMedium" style={styles.title} accessibilityRole="header">
+          <MaterialCommunityIcons name="store-search" size={56} color={colors.primary[500]} />
+          <Text style={styles.title} accessibilityRole="header">
             Welcome
           </Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>
+          <Text style={styles.subtitle}>
             Enter your business code to get started
           </Text>
         </View>
@@ -78,6 +82,7 @@ export default function BusinessCodeScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             style={styles.input}
+            mode="outlined"
             accessibilityLabel="Business code"
             disabled={validateMutation.isPending}
           />
@@ -88,6 +93,7 @@ export default function BusinessCodeScreen() {
             loading={validateMutation.isPending}
             disabled={validateMutation.isPending || !slug.trim()}
             style={styles.button}
+            contentStyle={styles.buttonContent}
             accessibilityLabel="Continue with this business code"
             accessibilityState={{ disabled: validateMutation.isPending || !slug.trim() }}
           >
@@ -107,33 +113,39 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
+    padding: spacing[6],
   },
   header: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: spacing[10],
   },
   title: {
+    ...typography['display'],
     color: colors.primary[500],
-    marginBottom: 8,
+    marginTop: spacing[4],
+    marginBottom: spacing[2],
   },
   subtitle: {
+    ...typography['body-lg'],
     color: colors.text.secondary,
     textAlign: 'center',
   },
   form: {
-    gap: 8,
+    gap: spacing[2],
   },
   input: {
     backgroundColor: colors.surface,
   },
   button: {
-    marginTop: 16,
-    paddingVertical: 8,
+    marginTop: spacing[4],
+    borderRadius: borderRadius.lg,
+  },
+  buttonContent: {
+    paddingVertical: spacing[2],
   },
   error: {
     backgroundColor: colors.error.light,
-    borderRadius: 8,
-    marginBottom: 8,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing[2],
   },
 });

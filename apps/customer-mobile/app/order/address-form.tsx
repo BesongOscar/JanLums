@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
-import { Text, Button, TextInput, ActivityIndicator, Snackbar, SegmentedButtons, Switch } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text, Button, TextInput, Snackbar, SegmentedButtons, Switch } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,8 +12,10 @@ import { useOrderDraftStore } from '../../src/stores/orderDraftStore';
 import { addressSchema } from '../../src/utils/validation';
 import type { AddressFormData } from '../../src/utils/validation';
 import { colors } from '../../src/config/colors';
-import { spacing, borderRadius } from '../../src/config/spacing';
+import { spacing } from '../../src/config/spacing';
 import { typography } from '../../src/config/typography';
+import { ScreenHeader } from '../../src/components/common/ScreenHeader';
+import { SkeletonList } from '../../src/components/common/SkeletonLoader';
 
 const LABEL_OPTIONS = [
   { value: 'home', label: 'Home', icon: 'home' },
@@ -23,7 +24,6 @@ const LABEL_OPTIONS = [
 ];
 
 export default function AddressFormScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id, from } = useLocalSearchParams<{ id?: string; from?: string }>();
   const isEditing = !!id;
@@ -102,20 +102,24 @@ export default function AddressFormScreen() {
 
   if (isEditing && isAddressLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary[500]} />
+      <View style={styles.container}>
+        <ScreenHeader title={isEditing ? 'Edit Address' : 'Add New Address'} />
+        <SkeletonList count={1} lines={4} />
       </View>
     );
   }
 
   if (isEditing && isAddressError) {
     return (
-      <View style={styles.center}>
-        <MaterialCommunityIcons name="alert-circle-outline" size={48} color={colors.error.DEFAULT} />
-        <Text style={styles.errorTitle}>Failed to load address</Text>
-        <Button mode="contained" onPress={() => router.back()} style={styles.retryButton}>
-          Go Back
-        </Button>
+      <View style={styles.container}>
+        <ScreenHeader title="Edit Address" />
+        <View style={styles.center}>
+          <MaterialCommunityIcons name="alert-circle-outline" size={48} color={colors.error.DEFAULT} />
+          <Text style={styles.errorTitle}>Failed to load address</Text>
+          <Button mode="contained" onPress={() => router.back()} style={styles.retryButton}>
+            Go Back
+          </Button>
+        </View>
       </View>
     );
   }
@@ -125,19 +129,10 @@ export default function AddressFormScreen() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={{ padding: spacing[4], paddingTop: insets.top + spacing[4] }}
+      contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.headerSection}>
-        <MaterialCommunityIcons
-          name={isEditing ? 'pencil-circle' : 'plus-circle'}
-          size={48}
-          color={colors.primary[500]}
-        />
-        <Text style={styles.headerTitle}>
-          {isEditing ? 'Edit Address' : 'Add New Address'}
-        </Text>
-      </View>
+      <ScreenHeader title={isEditing ? 'Edit Address' : 'Add New Address'} />
 
       <View style={styles.form}>
         <Text style={styles.fieldLabel}>Label</Text>
@@ -342,6 +337,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  content: {
+    paddingBottom: spacing[8],
+  },
   center: {
     flex: 1,
     justifyContent: 'center',
@@ -349,16 +347,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: spacing[4],
   },
-  headerSection: {
-    alignItems: 'center',
-    marginBottom: spacing[6],
-  },
-  headerTitle: {
-    ...typography['heading-lg'],
-    color: colors.text.primary,
-    marginTop: spacing[3],
-  },
   form: {
+    padding: spacing[4],
     gap: spacing[1],
   },
   fieldLabel: {

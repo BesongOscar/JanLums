@@ -18,80 +18,13 @@ import { typography } from '../../src/config/typography';
 import { formatCurrency, formatRelativeTime } from '../../src/utils/format';
 import { getStatusTranslation, getTimelineStatuses } from '../../src/utils/statusMapper';
 import { Order } from '../../src/types';
+import { SkeletonCard, SkeletonTimeline } from '../../src/components/common/SkeletonLoader';
+import { ErrorState } from '../../src/components/common/DataState';
 
 const ACTIVE_EXCLUDE: ReadonlySet<string> = new Set(['completed', 'cancelled']);
 
 function isActiveOrder(order: Order): boolean {
   return !ACTIVE_EXCLUDE.has(order.status);
-}
-
-function SkeletonCard() {
-  return (
-    <View style={styles.skeletonCard}>
-      <View style={styles.skeletonRow}>
-        <View style={[styles.skeletonBlock, { width: '40%', height: 16 }]} />
-        <View style={[styles.skeletonBlock, { width: '30%', height: 24 }]} />
-      </View>
-      <View style={{ height: spacing[2] }} />
-      <View style={styles.skeletonRow}>
-        <View style={[styles.skeletonBlock, { width: '25%', height: 14 }]} />
-        <View style={[styles.skeletonBlock, { width: '20%', height: 14 }]} />
-      </View>
-    </View>
-  );
-}
-
-function SkeletonTimeline() {
-  const timelineStatuses = useMemo(() => getTimelineStatuses(), []);
-  return (
-    <View style={styles.skeletonTimeline}>
-      {timelineStatuses.map((_, index) => (
-        <View key={index} style={styles.skeletonTimelineRow}>
-          <View style={styles.skeletonTimelineDot} />
-          {index < timelineStatuses.length - 1 && (
-            <View style={styles.skeletonTimelineLine} />
-          )}
-          <View style={[styles.skeletonBlock, { flex: 1, height: 14, marginLeft: spacing[3] }]} />
-        </View>
-      ))}
-    </View>
-  );
-}
-
-function EmptyState({ onViewHistory }: { onViewHistory: () => void }) {
-  return (
-    <View style={styles.emptyContainer}>
-      <View style={styles.emptyIconWrapper}>
-        <MaterialCommunityIcons name="package-variant-closed" size={48} color={colors.gray[300]} />
-      </View>
-      <Text style={styles.emptyTitle}>No active orders</Text>
-      <Text style={styles.emptySubtitle}>We&apos;ll show your laundry progress here.</Text>
-      <TouchableOpacity
-        style={styles.viewHistoryButton}
-        onPress={onViewHistory}
-        activeOpacity={0.7}
-        accessibilityLabel="View order history"
-        accessibilityRole="button"
-      >
-        <MaterialCommunityIcons name="clipboard-list" size={18} color={colors.white} />
-        <Text style={styles.viewHistoryButtonText}>View Order History</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <View style={styles.emptyContainer}>
-      <MaterialCommunityIcons name="alert-circle-outline" size={64} color={colors.error.DEFAULT} />
-      <Text style={styles.errorTitle}>Unable to load orders</Text>
-      <Text style={styles.emptySubtitle}>{message}</Text>
-      <TouchableOpacity style={styles.retryButton} onPress={onRetry} activeOpacity={0.7} accessibilityLabel="Retry loading orders" accessibilityRole="button">
-        <MaterialCommunityIcons name="refresh" size={18} color={colors.white} />
-        <Text style={styles.retryButtonText}>Retry</Text>
-      </TouchableOpacity>
-    </View>
-  );
 }
 
 export default function TrackScreen() {
@@ -132,10 +65,6 @@ export default function TrackScreen() {
     },
     [analytics, router]
   );
-
-  const handleRefresh = useCallback(() => {
-    refetch();
-  }, [refetch]);
 
   const handleViewHistory = useCallback(() => {
     router.push('/(tabs)/orders' as any);
@@ -213,16 +142,20 @@ export default function TrackScreen() {
     return (
       <View>
         <View style={[styles.headerContainer, { paddingTop: insets.top + spacing[4] }]}>
-          <Text style={styles.headerTitle} accessibilityRole="header">Track Orders</Text>
-          <Text style={styles.headerSubtitle}>
-            {activeCount > 0
-              ? `${activeCount} active ${activeCount === 1 ? 'order' : 'orders'}`
-              : 'No active orders'}
-          </Text>
-          <TouchableOpacity style={styles.scanQrButton} onPress={handleScanQr} activeOpacity={0.7} accessibilityLabel="Scan QR code" accessibilityRole="button">
-            <MaterialCommunityIcons name="qrcode-scan" size={16} color={colors.white} />
-            <Text style={styles.scanQrButtonText}>Scan QR</Text>
-          </TouchableOpacity>
+          <View style={styles.headerTopRow}>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerTitle} accessibilityRole="header">Track Orders</Text>
+              <Text style={styles.headerSubtitle}>
+                {activeCount > 0
+                  ? `${activeCount} active ${activeCount === 1 ? 'order' : 'orders'}`
+                  : 'No active orders'}
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.scanQrButton} onPress={handleScanQr} activeOpacity={0.7} accessibilityLabel="Scan QR code" accessibilityRole="button">
+              <MaterialCommunityIcons name="qrcode-scan" size={18} color={colors.white} />
+              <Text style={styles.scanQrButtonText}>Scan QR</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {activeCount > 0 && (
@@ -236,27 +169,13 @@ export default function TrackScreen() {
                 value={showAll}
                 onValueChange={handleToggleShowAll}
                 color={colors.primary[500]}
-                accessibilityLabel={showAll ? 'Showing all orders, tap to show active only' : 'Showing active orders only, tap to show all'}
               />
             </View>
           </View>
         )}
-
-        {activeCount > 0 && (
-          <TouchableOpacity
-            style={styles.refreshButton}
-            onPress={handleRefresh}
-            activeOpacity={0.7}
-            accessibilityLabel="Refresh orders"
-            accessibilityRole="button"
-          >
-            <MaterialCommunityIcons name="refresh" size={16} color={colors.primary[500]} />
-            <Text style={styles.refreshButtonLabel}>Refresh</Text>
-          </TouchableOpacity>
-        )}
       </View>
     );
-  }, [insets, activeCount, showAll, handleToggleShowAll, handleRefresh]);
+  }, [insets, activeCount, showAll, handleToggleShowAll, handleScanQr]);
 
   if (isLoading) {
     return (
@@ -280,6 +199,7 @@ export default function TrackScreen() {
           <Text style={styles.headerTitle}>Track Orders</Text>
         </View>
         <ErrorState
+          title="Unable to load orders"
           message={error instanceof Error ? error.message : 'Something went wrong'}
           onRetry={handleRefresh}
         />
@@ -295,14 +215,30 @@ export default function TrackScreen() {
         renderItem={renderOrderItem}
         ListHeaderComponent={renderListHeader}
         ListEmptyComponent={
-          <EmptyState onViewHistory={handleViewHistory} />
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconWrapper}>
+              <MaterialCommunityIcons name="package-variant-closed" size={48} color={colors.gray[300]} />
+            </View>
+            <Text style={styles.emptyTitle}>No active orders</Text>
+            <Text style={styles.emptySubtitle}>We&apos;ll show your laundry progress here.</Text>
+            <TouchableOpacity
+              style={styles.viewHistoryButton}
+              onPress={handleViewHistory}
+              activeOpacity={0.7}
+              accessibilityLabel="View order history"
+              accessibilityRole="button"
+            >
+              <MaterialCommunityIcons name="clipboard-list" size={18} color={colors.white} />
+              <Text style={styles.viewHistoryButtonText}>View Order History</Text>
+            </TouchableOpacity>
+          </View>
         }
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
-            onRefresh={handleRefresh}
+            onRefresh={() => refetch()}
             tintColor={colors.primary[500]}
             colors={[colors.primary[500]]}
           />
@@ -320,6 +256,14 @@ const styles = StyleSheet.create({
   headerContainer: {
     paddingHorizontal: spacing[4],
     paddingBottom: spacing[3],
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   headerTitle: {
     ...typography['heading-lg'],
@@ -349,19 +293,6 @@ const styles = StyleSheet.create({
   showAllToggleLabel: {
     ...typography['body-sm'],
     color: colors.text.secondary,
-  },
-  refreshButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-end',
-    marginRight: spacing[4],
-    marginBottom: spacing[3],
-    gap: spacing[1],
-  },
-  refreshButtonLabel: {
-    ...typography['body-sm'],
-    color: colors.primary[500],
-    fontWeight: '600',
   },
   listContent: {
     paddingBottom: spacing[8],
@@ -419,6 +350,19 @@ const styles = StyleSheet.create({
     color: colors.primary[500],
     fontWeight: '600',
   },
+  scanQrButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary[500],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.full,
+    gap: spacing[1],
+  },
+  scanQrButtonText: {
+    ...typography.button,
+    color: colors.white,
+  },
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: spacing[12],
@@ -458,84 +402,9 @@ const styles = StyleSheet.create({
     ...typography.button,
     color: colors.white,
   },
-  errorTitle: {
-    ...typography.heading,
-    color: colors.text.primary,
-    marginTop: spacing[4],
-    marginBottom: spacing[2],
-  },
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary[500],
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.full,
-    marginTop: spacing[5],
-    gap: spacing[2],
-  },
-  retryButtonText: {
-    ...typography.button,
-    color: colors.white,
-  },
-  skeletonCard: {
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing[4],
-    marginBottom: spacing[3],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-  },
-  skeletonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  skeletonBlock: {
-    backgroundColor: colors.gray[100],
-    borderRadius: borderRadius.sm,
-  },
   skeletonList: {
     paddingTop: spacing[4],
     gap: spacing[2],
-  },
-  scanQrButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary[500],
     paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.full,
-    gap: spacing[1],
-    marginTop: spacing[3],
-  },
-  scanQrButtonText: {
-    ...typography.button,
-    color: colors.white,
-  },
-  skeletonTimeline: {
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing[4],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-  },
-  skeletonTimelineRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    minHeight: 36,
-  },
-  skeletonTimelineDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.gray[100],
-  },
-  skeletonTimelineLine: {
-    position: 'absolute',
-    left: 9,
-    top: 20,
-    width: 2,
-    height: 28,
-    backgroundColor: colors.gray[100],
   },
 });

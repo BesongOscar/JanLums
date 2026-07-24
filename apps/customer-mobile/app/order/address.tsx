@@ -1,14 +1,12 @@
-import { useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
-import { Text, Card, Button } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text, Card, Button, Dialog, Portal } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAddresses, useDeleteAddress } from '../../src/hooks/useAddresses';
@@ -18,6 +16,7 @@ import { colors } from '../../src/config/colors';
 import { spacing, borderRadius } from '../../src/config/spacing';
 import { typography } from '../../src/config/typography';
 import type { Address } from '../../src/types';
+import { ScreenHeader } from '../../src/components/common/ScreenHeader';
 
 function formatAddressSummary(a: Address): string {
   const parts = [a.addressLine1, a.city, a.state].filter(Boolean);
@@ -25,7 +24,6 @@ function formatAddressSummary(a: Address): string {
 }
 
 export default function AddressScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
 
   const { data: addresses, isLoading, isError, refetch } = useAddresses();
@@ -33,6 +31,8 @@ export default function AddressScreen() {
   const setAddress = useOrderDraftStore((s) => s.setAddress);
   const deleteMutation = useDeleteAddress();
   const { blockIfOffline } = useOfflineBlock();
+
+  const [deleteTarget, setDeleteTarget] = useState<Address | null>(null);
 
   const handleSelect = useCallback(
     (addr: Address) => {
@@ -59,29 +59,17 @@ export default function AddressScreen() {
   );
 
   const handleDelete = useCallback(
-    (addr: Address) => {
+    async (addr: Address) => {
       if (blockIfOffline('delete this address')) return;
-      Alert.alert(
-        'Delete Address',
-        `Are you sure you want to delete this ${addr.label} address?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                await deleteMutation.mutateAsync(addr.id);
-                if (addressId === addr.id) {
-                  setAddress(null, '');
-                }
-              } catch {
-                // Error handled by react-query, address stays in list
-              }
-            },
-          },
-        ]
-      );
+      setDeleteTarget(null);
+      try {
+        await deleteMutation.mutateAsync(addr.id);
+        if (addressId === addr.id) {
+          setAddress(null, '');
+        }
+      } catch {
+        // Error handled by react-query, address stays in list
+      }
     },
     [blockIfOffline, deleteMutation, addressId, setAddress]
   );
@@ -213,7 +201,7 @@ export default function AddressScreen() {
                           />
                         </TouchableOpacity>
                         <TouchableOpacity
-                          onPress={() => handleDelete(addr)}
+                          onPress={() => setDeleteTarget(addr)}
                           style={styles.actionButton}
                           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                           accessibilityLabel={`Delete ${addr.label} address`}
@@ -245,21 +233,8 @@ export default function AddressScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.headerBar}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-          accessibilityLabel="Go back"
-          accessibilityRole="button"
-        >
-          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerBarTitle} accessibilityRole="header">
-          Delivery Address
-        </Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <View style={styles.container}>
+      <ScreenHeader title="Delivery Address" />
 
       <ScrollView
         style={styles.scrollView}
@@ -293,6 +268,26 @@ export default function AddressScreen() {
           Save & Return
         </Button>
       </View>
+
+      <Portal>
+        <Dialog visible={deleteTarget !== null} onDismiss={() => setDeleteTarget(null)}>
+          <Dialog.Icon icon="delete" />
+          <Dialog.Title>Delete Address</Dialog.Title>
+          <Dialog.Content>
+            <Text>Are you sure you want to delete this {deleteTarget?.label} address?</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button
+              onPress={() => deleteTarget && handleDelete(deleteTarget)}
+              textColor={colors.error.DEFAULT}
+              loading={deleteMutation.isPending}
+            >
+              Delete
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
@@ -301,27 +296,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20,
-  },
-  headerBarTitle: {
-    ...typography.heading,
-    color: colors.text.primary,
   },
   scrollView: {
     flex: 1,

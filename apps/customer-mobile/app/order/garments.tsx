@@ -14,6 +14,7 @@ import { colors } from '../../src/config/colors';
 import { spacing, borderRadius } from '../../src/config/spacing';
 import { typography } from '../../src/config/typography';
 import type { GarmentDraftItem } from '../../src/types';
+import { ScreenHeader } from '../../src/components/common/ScreenHeader';
 
 const GARMENT_TYPES = [
   'Shirt', 'Pant', 'Suit', 'Dress', 'Skirt', 'Jacket',
@@ -255,19 +256,8 @@ export default function GarmentEntryScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.headerBar}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.headerButton}
-          accessibilityLabel="Go back"
-          accessibilityRole="button"
-        >
-          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerBarTitle} accessibilityRole="header">Garment Details</Text>
-        <View style={styles.headerButton} />
-      </View>
+    <View style={styles.container}>
+      <ScreenHeader title="Garment Details" />
 
       <View style={styles.serviceInfo}>
         <MaterialCommunityIcons name="tshirt-crew" size={20} color={colors.primary[500]} />
@@ -288,7 +278,7 @@ export default function GarmentEntryScreen() {
               <View style={styles.emptyGarments}>
                 <MaterialCommunityIcons name="hanger" size={40} color={colors.text.tertiary} />
                 <Text style={styles.emptyGarmentsText}>
-                  No garments added yet. Tap "Add Garment" to specify details for each item.
+                  No garments added yet. Tap &ldquo;Add Garment&rdquo; to specify details for each item.
                 </Text>
               </View>
             ) : (
@@ -369,6 +359,7 @@ export default function GarmentEntryScreen() {
           }}
           style={styles.dialog}
         >
+          <Dialog.Icon icon={editingIndex !== null ? 'pencil' : 'hanger'} />
           <Dialog.Title accessibilityRole="header">
             {editingIndex !== null ? 'Edit Garment' : 'Add Garment'}
           </Dialog.Title>
@@ -403,26 +394,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing[4],
-  },
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[2],
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerBarTitle: {
-    ...typography['heading-sm'],
-    color: colors.text.primary,
   },
   serviceInfo: {
     flexDirection: 'row',
