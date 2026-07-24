@@ -5,7 +5,7 @@ import { TenantInfo } from '../../../types';
 
 export const authService = {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await api.post(API_ENDPOINTS.AUTH.LOGIN, credentials);
+    const response = await api.post(API_ENDPOINTS.AUTH.LOGIN, { ...credentials, platform: 'customer-mobile' });
     return response.data;
   },
 

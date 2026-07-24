@@ -21,13 +21,12 @@ import { TenantInfo } from '../src/types';
 
 const ONBOARDING_KEY = '@janlums/onboarding_complete';
 
-function buildTheme(tenantPrimaryColor?: string) {
-  const activePrimary = tenantPrimaryColor || colors.primary[500];
+function buildTheme() {
   return {
     ...DefaultTheme,
     colors: {
       ...DefaultTheme.colors,
-      primary: activePrimary,
+      primary: colors.primary[500],
       accent: colors.secondary[500],
       background: colors.background,
       surface: colors.surface,
@@ -41,7 +40,8 @@ function AppContent() {
   useDeepLinkHandler();
   useSyncQueueProcessor();
 
-  const { isAuthenticated, isLoading, tenant } = useAuthStore();
+  const { isAuthenticated, isLoading, tenant, user } = useAuthStore();
+  const logout = useAuthStore((s) => s.logout);
   const [storedTenant, setStoredTenant] = useState<TenantInfo | null>(null);
   const [tenantLoaded, setTenantLoaded] = useState(false);
   const segments = useSegments();
@@ -71,7 +71,7 @@ function AppContent() {
 
   const activeTenant = tenant || storedTenant;
 
-  const theme = useMemo(() => buildTheme(activeTenant?.primaryColor), [activeTenant?.primaryColor]);
+  const theme = useMemo(() => buildTheme(), []);
 
   useEffect(() => {
     if (isLoading || !tenantLoaded) return;
@@ -94,6 +94,9 @@ function AppContent() {
             router.replace('/(auth)/login');
           }
         }
+      } else if (isAuthenticated && user?.role !== 'customer') {
+        await logout();
+        router.replace('/(auth)/login');
       } else if (isAuthenticated && inAuthGroup) {
         router.replace('/(tabs)');
       }
@@ -109,7 +112,7 @@ function AppContent() {
         <OfflineBanner />
         {(isLoading || !tenantLoaded) && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={activeTenant?.primaryColor || colors.primary[500]} />
+            <ActivityIndicator size="large" color={colors.primary[500]} />
           </View>
         )}
         <StatusBar style="auto" />

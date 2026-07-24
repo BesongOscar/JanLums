@@ -8,8 +8,15 @@ import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
 import { Customer } from '../customers/entities/customer.entity';
 import { Tenant } from '../tenants/entities/tenant.entity';
-import { LoginDto } from './dto/login.dto';
+import { LoginDto, ALLOWED_PLATFORMS } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+
+const PLATFORM_ROLES: Record<string, string[]> = {
+  'customer-mobile': ['customer'],
+  'admin-web': ['admin', 'platform_admin'],
+  'pressing-web': ['admin', 'platform_admin', 'counter_staff'],
+  'customer-web': ['customer'],
+};
 
 @Injectable()
 export class AuthService {
@@ -52,8 +59,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    if (user.role !== 'admin' && user.role !== 'customer' && user.role !== 'platform_admin') {
-      throw new ForbiddenException('Access denied. Only tenant administrators can access this application.');
+    if (loginDto.platform) {
+      const allowedRoles = PLATFORM_ROLES[loginDto.platform];
+      if (!allowedRoles || !allowedRoles.includes(user.role)) {
+        throw new ForbiddenException('This account is not authorized for this application.');
+      }
     }
 
     const payload = {
@@ -76,6 +86,7 @@ export class AuthService {
         role: user.role,
         tenantId: user.tenantId,
         tenantName,
+        tenantSlug: loginDto.tenantSlug || null,
       },
     };
   }

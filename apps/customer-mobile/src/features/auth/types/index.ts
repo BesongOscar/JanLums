@@ -4,6 +4,7 @@ export interface LoginCredentials {
   email: string;
   password: string;
   tenantSlug: string;
+  platform: 'customer-mobile';
 }
 
 export interface RegisterData {

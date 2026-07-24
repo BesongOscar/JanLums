@@ -10,6 +10,9 @@ import { useAuthStore } from '../../src/stores/authStore';
 import { normalizeError } from '../../src/utils/errorHandler';
 import { useOfflineBlock } from '../../src/hooks/useOfflineBlock';
 import { colors } from '../../src/config/colors';
+import { spacing, borderRadius } from '../../src/config/spacing';
+import { typography } from '../../src/config/typography';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 function goToBusinessCode(router: ReturnType<typeof useRouter>) {
   router.replace('/(auth)/business-code' as any);
@@ -36,7 +39,7 @@ export default function LoginScreen() {
         goToBusinessCode(router);
         return;
       }
-      loginMutation.mutate({ ...data, tenantSlug: tenant.slug });
+      loginMutation.mutate({ ...data, tenantSlug: tenant.slug, platform: 'customer-mobile' });
     },
     [loginMutation, blockIfOffline, tenant, router]
   );
@@ -61,17 +64,18 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text variant="displayMedium" style={styles.title} accessibilityRole="header">
+          <MaterialCommunityIcons name="tshirt-crew" size={56} color={colors.primary[500]} />
+          <Text style={styles.title} accessibilityRole="header">
             {tenant?.name || 'JanLums'}
           </Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>
+          <Text style={styles.subtitle}>
             Professional Laundry Services
           </Text>
           <Button
             mode="text"
             onPress={handleChangeBusiness}
             compact
-            style={styles.changeBusiness as any}
+            style={styles.changeBusiness}
             textColor={colors.text.secondary}
             accessibilityLabel="Change business"
           >
@@ -99,6 +103,7 @@ export default function LoginScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
+                mode="outlined"
                 style={styles.input}
                 accessibilityLabel="Email address"
               />
@@ -121,6 +126,7 @@ export default function LoginScreen() {
                 onBlur={onBlur}
                 error={!!errors.password}
                 secureTextEntry
+                mode="outlined"
                 style={styles.input}
                 accessibilityLabel="Password"
               />
@@ -138,6 +144,7 @@ export default function LoginScreen() {
             loading={loginMutation.isPending}
             disabled={loginMutation.isPending}
             style={styles.button}
+            contentStyle={styles.buttonContent}
             accessibilityLabel="Log in to your account"
             accessibilityState={{ disabled: loginMutation.isPending }}
           >
@@ -163,38 +170,44 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
+    padding: spacing[6],
   },
   header: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: spacing[10],
   },
   title: {
+    ...typography['display'],
     color: colors.primary[500],
-    marginBottom: 8,
+    marginTop: spacing[3],
+    marginBottom: spacing[1],
   },
   subtitle: {
+    ...typography['body-lg'],
     color: colors.text.secondary,
   },
   form: {
-    gap: 8,
+    gap: spacing[2],
   },
   input: {
     backgroundColor: colors.surface,
   },
   button: {
-    marginTop: 16,
-    paddingVertical: 8,
+    marginTop: spacing[4],
+    borderRadius: borderRadius.lg,
+  },
+  buttonContent: {
+    paddingVertical: spacing[2],
   },
   linkButton: {
-    marginTop: 8,
+    marginTop: spacing[2],
   },
   error: {
     backgroundColor: colors.error.light,
-    borderRadius: 8,
-    marginBottom: 8,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing[2],
   },
   changeBusiness: {
-    marginTop: 4,
+    marginTop: spacing[1],
   },
 });

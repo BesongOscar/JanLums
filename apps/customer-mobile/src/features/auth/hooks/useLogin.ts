@@ -11,6 +11,9 @@ export function useLogin() {
   return useMutation({
     mutationFn: authService.login,
     onSuccess: async (response) => {
+      if (response.user.role !== 'customer') {
+        throw new Error('This account is not authorized for the customer app.');
+      }
       await setAuth(response.accessToken, response.refreshToken ?? null, response.user);
       queryClient.clear();
       router.replace('/(tabs)');
